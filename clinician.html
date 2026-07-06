@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinician Dashboard - PhysioTrack</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/clinician.css" />
+</head>
+<body class="app-page">
+
+  <!-- Clinician sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="nav-logo">⟁</span>
+      <span>PhysioTrack</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="clinician.html" class="nav-item active"><span class="nav-icon">⊞</span> Dashboard</a>
+      <a href="clinician-patients.html" class="nav-item"><span class="nav-icon">👥</span> Patient List</a>
+      <a href="clinician-patient.html" class="nav-item"><span class="nav-icon">👤</span> Patient View</a>
+      <a href="messages.html" class="nav-item"><span class="nav-icon">✉</span> Messages <span class="nav-badge">3</span></a>
+      <a href="settings.html" class="nav-item"><span class="nav-icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip" id="userChip">
+        <div class="user-avatar" id="userAvatar" style="background: linear-gradient(135deg,#7c3aed,#00e5ff);"></div>
+        <div>
+          <div class="user-name" id="userName"></div>
+          <div class="user-role" id="userRole"></div>
+        </div>
+      </div>
+      <a href="login.html" class="btn btn-ghost btn-sm">Logout</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="hamburger" id="sidebarToggle">☰</button>
+      <div class="topbar-left">
+        <h1 class="page-title">Clinician Dashboard</h1>
+        <span class="text-muted" id="topbarSubtitle" style="font-size:.875rem;"></span>
+      </div>
+      <div class="topbar-right">
+        <span class="badge badge-teal">Clinic Mode</span>
+        <div class="user-avatar" style="background: linear-gradient(135deg,#7c3aed,#00e5ff);">D</div>
+      </div>
+    </header>
+
+    <div class="content-area">
+
+      <!-- Clinician stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card-label">Total Patients</div>
+          <div class="stat-card-num text-teal" id="totalPatients"></div>
+          <div class="text-muted" style="font-size:.8rem;" id="activeTodayLabel"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Sessions Today</div>
+          <div class="stat-card-num" id="sessionsToday"></div>
+          <div class="text-muted" style="font-size:.8rem;" id="sessionsInProgressLabel"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Avg Adherence</div>
+          <div class="stat-card-num text-success" id="avgAdherence"></div>
+          <div class="mini-bar"><div class="mini-fill" id="adherenceBar" style="background:var(--success);"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Avg Quality Score</div>
+          <div class="stat-card-num" id="avgQuality"></div>
+          <div class="mini-bar"><div class="mini-fill" id="qualityBar" style="background:var(--teal);"></div></div>
+        </div>
+      </div>
+
+      <!-- Patient list + detail -->
+      <div class="clinician-main">
+
+        <!-- Patient list -->
+        <div class="card patient-list-card">
+          <div class="card-header">
+            <span>Patient List</span>
+            <div class="flex gap-1">
+              <input class="form-control" type="text" placeholder="Search…" style="padding:.3rem .75rem; font-size:.8rem;" id="patientSearch" />
+              <select class="form-control" style="padding:.3rem .5rem; font-size:.8rem; width:auto;" id="adherenceFilter">
+                <option value="">All</option>
+                <option value="high">High Adherence</option>
+                <option value="low">Needs Attention</option>
+              </select>
+            </div>
+          </div>
+
+          <table class="session-table patient-table" id="patientTable">
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Last Session</th>
+                <th>Adherence</th>
+                <th>Quality</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="patientTableBody">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Right panel: quick metrics -->
+        <div class="clinician-right">
+          <div class="card">
+            <div class="card-header"><span>Attention Needed</span></div>
+            <div class="alert-list" id="attentionList">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>Live Sessions</span></div>
+            <div style="display:flex; flex-direction:column; gap:.5rem;" id="liveSessionsList">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span>Weekly Overview</span></div>
+            <canvas id="clinicianChart" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="js/clinician.js"></script>
+</body>
+</html>

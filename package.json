@@ -1,0 +1,12 @@
+{
+  "name": "rehabi-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "eslint js --ext .js",
+    "lint:fix": "eslint js --ext .js --fix"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0"
+  }
+}

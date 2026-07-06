@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - PhysioTrack</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="auth-page">
+
+  <div class="auth-layout">
+    <div class="auth-left">
+      <div class="auth-brand">
+        <span class="nav-logo">⟁</span>
+        <span class="nav-name">PhysioTrack</span>
+      </div>
+      <div class="auth-left-body">
+        <h2>Start your recovery today.</h2>
+        <p>Guided physiotherapy from home with clinician oversight.</p>
+        <div class="auth-bullets">
+          <div class="auth-bullet"><span>✓</span> No special equipment needed</div>
+          <div class="auth-bullet"><span>✓</span> Linked to your clinician instantly</div>
+          <div class="auth-bullet"><span>✓</span> Squats · Lunges · Knee Extensions</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-right">
+      <div class="auth-form-wrap">
+        <div class="role-toggle" id="roleToggle">
+          <button class="role-btn active" data-role="patient">Patient</button>
+          <button class="role-btn" data-role="clinician">Clinician</button>
+        </div>
+
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-sub">Already have an account? <a href="login.html">Sign in</a></p>
+
+        <form id="registerForm" action="php/register.php" method="POST">
+          <input type="hidden" name="role" id="roleInput" value="patient" />
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              <input class="form-control" type="text" name="first_name" placeholder="Alex" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              <input class="form-control" type="text" name="last_name" placeholder="Smith" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-control" type="email" name="email" placeholder="you@example.com" required />
+          </div>
+
+          <!-- Patient-only fields -->
+          <div id="patientFields">
+            <div class="form-group">
+              <label class="form-label">Injury / Condition</label>
+              <select class="form-control" name="condition">
+                <option value="">Select condition</option>
+                <option>Post-surgery (knee)</option>
+                <option>Post-surgery (hip)</option>
+                <option>Sports injury (ACL)</option>
+                <option>Sports injury (hamstring)</option>
+                <option>General rehabilitation</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Clinician Code <span class="text-muted">(optional)</span></label>
+              <input class="form-control" type="text" name="clinician_code" placeholder="e.g. DR-4892" />
+            </div>
+          </div>
+
+          <!-- Clinician-only fields -->
+          <div id="clinicianFields" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Clinic / Hospital</label>
+              <input class="form-control" type="text" name="clinic" placeholder="City PhysioTracklitation Center" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Specialization</label>
+              <select class="form-control" name="specialization">
+                <option>Physiotherapy</option>
+                <option>Sports Medicine</option>
+                <option>Orthopedics</option>
+                <option>Occupational Therapy</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" name="password" placeholder="Min 8 characters" required minlength="8" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <input class="form-control" type="password" name="password_confirm" placeholder="Repeat password" required />
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" required />
+              I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+            </label>
+          </div>
+
+          <div id="registerError" class="form-error" style="display:none;"></div>
+
+          <button type="submit" class="btn btn-primary btn-full">Create Account →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - PhysioTrack</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="auth-page">
+
+  <div class="auth-layout">
+    <!-- Left panel -->
+    <div class="auth-left">
+      <div class="auth-brand">
+        <span class="nav-logo">⟁</span>
+        <span class="nav-name">PhysioTrack</span>
+      </div>
+      <div class="auth-left-body">
+        <h2>Welcome back.</h2>
+        <p>Your rehabilitation program and clinician dashboard are ready.</p>
+        <div class="auth-visual">
+          <svg viewBox="0 0 160 240" xmlns="http://www.w3.org/2000/svg" width="140">
+            <circle cx="80" cy="25" r="12" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="80" y1="37" x2="80" y2="95" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="80" y1="55" x2="45" y2="75" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="80" y1="55" x2="115" y2="75" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="45" y1="75" x2="35" y2="105" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="115" y1="75" x2="125" y2="105" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="80" y1="95" x2="58" y2="100" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="80" y1="95" x2="102" y2="100" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="58" y1="100" x2="50" y2="155" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="102" y1="100" x2="110" y2="155" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="50" y1="155" x2="55" y2="210" stroke="#00e5ff" stroke-width="1.5"/>
+            <line x1="110" y1="155" x2="105" y2="210" stroke="#00e5ff" stroke-width="1.5"/>
+            <circle cx="80" cy="95" r="3.5" fill="#00e5ff"/>
+            <circle cx="58" cy="100" r="3.5" fill="#00e5ff"/>
+            <circle cx="102" cy="100" r="3.5" fill="#00e5ff"/>
+            <circle cx="50" cy="155" r="4" fill="#7c3aed"/>
+            <circle cx="110" cy="155" r="4" fill="#7c3aed"/>
+            <circle cx="55" cy="210" r="3.5" fill="#00e5ff"/>
+            <circle cx="105" cy="210" r="3.5" fill="#00e5ff"/>
+          </svg>
+        </div>
+        <div class="auth-bullets">
+          <div class="auth-bullet"><span>✓</span> Real-time movement analysis</div>
+          <div class="auth-bullet"><span>✓</span> Clinician remote monitoring</div>
+          <div class="auth-bullet"><span>✓</span> Quality scoring and feedback</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel: login form -->
+    <div class="auth-right">
+      <div class="auth-form-wrap">
+        <!-- Role toggle -->
+        <div class="role-toggle" id="roleToggle">
+          <button class="role-btn active" data-role="patient">Patient</button>
+          <button class="role-btn" data-role="clinician">Clinician</button>
+        </div>
+
+        <h1 class="auth-title">Sign In</h1>
+        <p class="auth-sub">Don't have an account? <a href="register.html">Register here</a></p>
+
+        <form id="loginForm" action="php/login.php" method="POST">
+          <input type="hidden" name="role" id="roleInput" value="patient" />
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email Address</label>
+            <input class="form-control" type="email" id="email" name="email" placeholder="you@example.com" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <div class="input-wrap">
+              <input class="form-control" type="password" id="password" name="password" placeholder="••••••••" required />
+              <button type="button" class="input-toggle" id="togglePwd">👁</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" name="remember" /> Remember me
+            </label>
+            <a href="forgot.html" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <div id="loginError" class="form-error" style="display:none;"></div>
+
+          <button type="submit" class="btn btn-primary btn-full">Sign In →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

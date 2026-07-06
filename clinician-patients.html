@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient List - PhysioTrack</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/clinician.css" />
+</head>
+<body class="app-page">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="nav-logo">⟁</span>
+      <span>PhysioTrack</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="clinician.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+      <a href="clinician-patients.html" class="nav-item active"><span class="nav-icon">👥</span> Patient List</a>
+      <a href="clinician-patient.html" class="nav-item"><span class="nav-icon">👤</span> Patient View</a>
+      <a href="messages.html" class="nav-item"><span class="nav-icon">✉</span> Messages</a>
+      <a href="settings.html" class="nav-item"><span class="nav-icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip" id="userChip">
+        <div class="user-avatar" id="userAvatar" style="background: linear-gradient(135deg,#7c3aed,#00e5ff);">D</div>
+        <div>
+          <div class="user-name" id="userName"></div>
+          <div class="user-role" id="userRole"></div>
+        </div>
+      </div>
+      <a href="login.html" class="btn btn-ghost btn-sm">Logout</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="hamburger" id="sidebarToggle">☰</button>
+      <div class="topbar-left">
+        <h1 class="page-title">Patient List</h1>
+        <span class="text-muted" style="font-size:.875rem;">Manage therapy progress and live sessions</span>
+      </div>
+      <div class="topbar-right">
+        <span class="badge badge-teal">Clinic Mode</span>
+        <div class="user-avatar" style="background: linear-gradient(135deg,#7c3aed,#00e5ff);">D</div>
+      </div>
+    </header>
+
+    <div class="content-area">
+      <div class="card patient-list-card">
+        <div class="card-header">
+          <span>Patient List</span>
+          <div class="flex gap-1">
+            <input class="form-control" type="text" placeholder="Search…" id="patientSearch" style="padding:.3rem .75rem; font-size:.8rem;" />
+            <select class="form-control" id="adherenceFilter" style="padding:.3rem .5rem; font-size:.8rem; width:auto;">
+              <option value="">All</option>
+              <option value="high">High Adherence</option>
+              <option value="low">Needs Attention</option>
+            </select>
+          </div>
+        </div>
+
+        <table class="session-table patient-table" id="patientTable">
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Last Session</th>
+              <th>Adherence</th>
+              <th>Quality</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="patient-row" data-id="1">
+              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">S</div><div><div style="font-size:.875rem;font-weight:600;">Sathey Blesson</div><div class="text-muted" style="font-size:.75rem;">ACL recovery · Day 21</div></div></div></td>
+              <td class="text-muted" style="font-size:.8rem;">Just now</td>
+              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:88%;background:var(--success);"></div></div><span class="text-success" style="font-size:.8rem;">88%</span></td>
+              <td><span class="text-success">84%</span></td>
+              <td><span class="badge badge-teal"><span class="live-dot" style="width:6px;height:6px;"></span> Live</span></td>
+              <td><a href="clinician-patient.html?id=1" class="btn btn-outline btn-sm">View</a></td>
+            </tr>
+            <tr class="patient-row" data-id="2">
+              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">P</div><div><div style="font-size:.875rem;font-weight:600;">Patient Smith</div><div class="text-muted" style="font-size:.75rem;">Post-surgery knee · Day 9</div></div></div></td>
+              <td class="text-muted" style="font-size:.8rem;">2 min ago</td>
+              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:72%;background:var(--teal);"></div></div><span style="font-size:.8rem;color:var(--teal);">72%</span></td>
+              <td><span style="color:var(--teal);">79%</span></td>
+              <td><span class="badge badge-teal"><span class="live-dot" style="width:6px;height:6px;"></span> Live</span></td>
+              <td><a href="clinician-patient.html?id=2" class="btn btn-outline btn-sm">View</a></td>
+            </tr>
+            <tr class="patient-row" data-id="3">
+              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">R</div><div><div style="font-size:.875rem;font-weight:600;">Rothsy Blocom</div><div class="text-muted" style="font-size:.75rem;">Hip replacement · Day 35</div></div></div></td>
+              <td class="text-muted" style="font-size:.8rem;">1 hr ago</td>
+              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:65%;background:var(--warning);"></div></div><span style="font-size:.8rem;color:var(--warning);">65%</span></td>
+              <td><span style="color:var(--warning);">71%</span></td>
+              <td><span class="badge badge-warning">Resting</span></td>
+              <td><a href="clinician-patient.html?id=3" class="btn btn-outline btn-sm">View</a></td>
+            </tr>
+            <tr class="patient-row" data-id="4">
+              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">V</div><div><div style="font-size:.875rem;font-weight:600;">Vamina Seiroph</div><div class="text-muted" style="font-size:.75rem;">Sports injury · Day 7</div></div></div></td>
+              <td class="text-muted" style="font-size:.8rem;">3 hr ago</td>
+              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:45%;background:var(--danger);"></div></div><span style="font-size:.8rem;color:var(--danger);">45%</span></td>
+              <td><span style="color:var(--danger);">68%</span></td>
+              <td><span class="badge badge-danger">Needs Attention</span></td>
+              <td><a href="clinician-patient.html?id=4" class="btn btn-outline btn-sm">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/clinician.js"></script>
+</body>
+</html>

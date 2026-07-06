@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Session - PhysioTrack</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/session.css" />
+</head>
+<body class="app-page">
+
+  <!-- Sidebar (same as dashboard) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="nav-logo">⟁</span>
+      <span>PhysioTrack</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
+      <a href="session.html" class="nav-item active"><span class="nav-icon">▶</span> Start Session</a>
+      <a href="exercises.html" class="nav-item"><span class="nav-icon">🏋</span> My Exercises</a>
+      <a href="progress.html" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
+      <a href="messages.html" class="nav-item"><span class="nav-icon">✉</span> Messages</a>
+      <a href="settings.html" class="nav-item"><span class="nav-icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip" id="userChip">
+        <div class="user-avatar" id="userAvatar">A</div>
+        <div>
+          <div class="user-name" id="userName"></div>
+          <div class="user-role" id="userRole"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="hamburger" id="sidebarToggle">☰</button>
+      <div class="topbar-left">
+        <h1 class="page-title">Live Session</h1>
+        <span class="text-muted" id="topbarSubtitle" style="font-size:.875rem;\"></span>
+      </div>
+      <div class="topbar-right">
+        <span class="badge badge-teal"><span class="live-dot"></span> Live</span>
+        <div class="session-timer" id="sessionTimer">00:00</div>
+      </div>
+    </header>
+
+    <div class="session-layout">
+
+      <!-- Left: camera + pose overlay -->
+      <div class="session-main">
+        <div class="camera-panel card-glow card">
+          <div class="camera-header">
+            <div class="flex gap-2" style="align-items:center;">
+              <span class="live-dot"></span>
+              <span style="font-size:.8rem;">Live Camera Feed</span>
+            </div>
+            <div class="flex gap-2">
+              <span class="model-badge">Motion Tracking</span>
+              <button class="btn btn-ghost btn-sm" id="camBtn">📷 Camera Off</button>
+            </div>
+          </div>
+
+          <!-- Video container -->
+          <div class="camera-viewport" id="camViewport">
+            <video id="videoFeed" autoplay playsinline muted></video>
+            <canvas id="poseCanvas"></canvas>
+
+            <!-- Overlay: joint labels -->
+            <div class="joint-label" id="labelKnee" style="left:35%; top:62%;">
+              Left Knee: <strong id="kneeAngle">--°</strong>
+            </div>
+            <div class="joint-label" id="labelHip" style="left:58%; top:42%;">
+              Hip Flexion: <strong id="hipAngle">--°</strong>
+            </div>
+
+            <!-- No-camera placeholder -->
+            <div class="cam-placeholder" id="camPlaceholder">
+              <div class="skeleton-placeholder">
+                <svg viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg" width="140" opacity=".4">
+                  <circle cx="100" cy="30" r="14" fill="none" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="100" y1="44" x2="100" y2="110" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="100" y1="60" x2="60" y2="80" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="100" y1="60" x2="140" y2="80" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="60" y1="80" x2="45" y2="115" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="140" y1="80" x2="155" y2="115" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="100" y1="110" x2="70" y2="115" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="100" y1="110" x2="130" y2="115" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="70" y1="115" x2="55" y2="175" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="130" y1="115" x2="145" y2="175" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="55" y1="175" x2="70" y2="230" stroke="#00e5ff" stroke-width="2"/>
+                  <line x1="145" y1="175" x2="130" y2="230" stroke="#00e5ff" stroke-width="2"/>
+                  <circle cx="100" cy="110" r="5" fill="#00e5ff"/>
+                  <circle cx="70" cy="115" r="5" fill="#00e5ff"/>
+                  <circle cx="130" cy="115" r="5" fill="#00e5ff"/>
+                  <circle cx="55" cy="175" r="6" fill="#7c3aed"/>
+                  <circle cx="145" cy="175" r="6" fill="#7c3aed"/>
+                  <circle cx="70" cy="230" r="5" fill="#00e5ff"/>
+                  <circle cx="130" cy="230" r="5" fill="#00e5ff"/>
+                </svg>
+              </div>
+              <p>Allow camera access to begin pose tracking</p>
+              <button class="btn btn-primary" id="enableCam">Enable Camera</button>
+            </div>
+          </div>
+
+          <!-- Form score bar -->
+          <div class="camera-footer">
+            <div class="form-score-row">
+              <span class="text-muted" style="font-size:.8rem;">Form Score</span>
+              <span id="formScoreLabel" class="text-success" style="font-weight:700;">-- %</span>
+            </div>
+            <div class="score-bar-full">
+              <div class="score-fill-full" id="formScoreBar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Temporal rhythm -->
+        <div class="card rhythm-card">
+          <div style="font-size:.75rem; color:var(--text-muted); margin-bottom:.5rem;">
+            Temporal Movement Rhythm
+          </div>
+          <div class="rhythm-bars" id="rhythmBars">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: controls & metrics -->
+      <div class="session-sidebar">
+
+        <!-- Exercise selector -->
+        <div class="card">
+          <div class="card-header"><span>Exercise</span></div>
+          <div class="ex-select-list" id="exSelectList">
+            <div class="ex-select-item active" data-ex="squat">
+              <span>🦵</span> Squats
+            </div>
+            <div class="ex-select-item" data-ex="lunge">
+              <span>🚶</span> Lunges
+            </div>
+            <div class="ex-select-item" data-ex="knee-ext">
+              <span>🪑</span> Knee Extensions
+            </div>
+          </div>
+        </div>
+
+        <!-- Rep counter -->
+        <div class="card rep-card">
+          <div class="rep-label">Rep Counter</div>
+          <div class="rep-big">
+            <span id="repCount">0</span>
+            <span class="rep-target">/ 15</span>
+          </div>
+          <div class="set-info">Set <span id="setNum">1</span> of 3</div>
+          <div class="rep-progress">
+            <div class="rep-fill" id="repBar" style="width:0%"></div>
+          </div>
+          <div style="display:flex; gap:.5rem; margin-top:1rem;">
+            <button class="btn btn-outline btn-sm" id="manualRep">+ Rep</button>
+            <button class="btn btn-ghost btn-sm" id="resetRep">Reset</button>
+          </div>
+        </div>
+
+        <!-- Quality score ring -->
+        <div class="card quality-card">
+          <div class="card-header"><span>Movement Quality</span></div>
+          <div class="quality-ring-wrap">
+            <svg class="quality-ring" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="8"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="8"
+                stroke-dasharray="251.2"
+                stroke-dashoffset="251.2"
+                stroke-linecap="round"
+                id="qualityArc"
+                transform="rotate(-90 50 50)"/>
+              <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+                fill="var(--text-primary)" font-size="18" font-weight="bold" id="qualityText">0%</text>
+            </svg>
+          </div>
+          <div id="qualityLabel" class="quality-label">Waiting…</div>
+        </div>
+
+        <!-- Form Feedback -->
+        <div class="card feedback-card">
+          <div class="card-header">
+            <span>Form Feedback</span>
+            <span class="badge badge-teal" style="font-size:.7rem;">Tracking</span>
+          </div>
+          <div class="feedback-body" id="feedbackBody">
+            <div class="feedback-msg">
+              <span class="feedback-icon">ℹ</span>
+              Start your session to receive live feedback.
+            </div>
+          </div>
+        </div>
+
+        <!-- Session controls -->
+        <div class="session-controls">
+          <button class="btn btn-primary" id="startBtn">▶ Start</button>
+          <button class="btn btn-outline" id="pauseBtn" disabled>⏸ Pause</button>
+          <button class="btn btn-danger btn-sm" id="endBtn">■ End Session</button>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="js/session.js"></script>
+</body>
+</html>
