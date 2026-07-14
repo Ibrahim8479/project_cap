@@ -23,10 +23,10 @@
     </nav>
     <div class="sidebar-footer">
       <div class="user-chip">
-        <div class="user-avatar">A</div>
+        <div class="user-avatar" id="userAvatar">A</div>
         <div>
-          <div class="user-name">Alex Smith</div>
-          <div class="user-role">Patient · Day 14</div>
+          <div class="user-name" id="userName">Alex Smith</div>
+          <div class="user-role" id="userRole">Patient · Day 14</div>
         </div>
       </div>
     </div>
@@ -50,17 +50,17 @@
         <div class="card-header"><span>Account Settings</span></div>
         <div class="form-group">
           <label class="form-label">Full Name</label>
-          <input class="form-control" type="text" />
+          <input class="form-control" type="text" id="accountFullName" name="full_name" />
         </div>
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <input class="form-control" type="email" />
+          <input class="form-control" type="email" id="accountEmail" name="email" />
         </div>
         <div class="form-group">
           <label class="form-label">Phone Number</label>
-          <input class="form-control" type="tel" />
+          <input class="form-control" type="tel" id="accountPhone" name="phone" />
         </div>
-        <button class="btn btn-primary">Save Changes</button>
+        <button id="saveSettingsBtn" class="btn btn-primary">Save Changes</button>
       </div>
 
       <div class="session-table card" style="padding:1.5rem;">
@@ -78,6 +78,7 @@
     </div>
   </main>
 
+  <script src="js/main.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

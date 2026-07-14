@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role          ENUM('patient','clinician') NOT NULL DEFAULT 'patient',
+    phone         VARCHAR(50),
     condition_type VARCHAR(100),
     clinic_name   VARCHAR(200),
     specialization VARCHAR(100),
@@ -44,6 +45,17 @@ INSERT IGNORE INTO exercises (name, slug, description, target_reps, target_sets)
   ('Squats',          'squat',    'Basic lower-body squat for knee/hip rehab', 15, 3),
   ('Lunges',          'lunge',    'Alternating lunges for balance and strength', 12, 3),
   ('Knee Extensions', 'knee-ext', 'Seated knee extension for quadriceps', 20, 2);
+
+-- Seed sample users
+INSERT IGNORE INTO users (first_name, last_name, email, password_hash, role, condition_type, clinic_name, specialization, clinician_code) VALUES
+  ('Dr', 'Jones', 'clinician@test.local', '$2b$12$y.sD68SfJuar8noo0zBV5.Axl1KNKpkODcrTRhcT57Y75BX0hdhNe', 'clinician', NULL, 'City Physio Center', 'Physiotherapy', 'DR-4892'),
+  ('Ava', 'Patient', 'patient@test.local', '$2b$12$y.sD68SfJuar8noo0zBV5.Axl1KNKpkODcrTRhcT57Y75BX0hdhNe', 'patient', 'Post-surgery (knee)', NULL, NULL, NULL);
+
+INSERT IGNORE INTO clinician_patients (clinician_id, patient_id)
+SELECT c.id, p.id
+FROM users c
+JOIN users p
+WHERE c.email = 'clinician@test.local' AND p.email = 'patient@test.local';
 
 -- Sessions
 CREATE TABLE IF NOT EXISTS sessions (
@@ -96,4 +108,22 @@ CREATE TABLE IF NOT EXISTS progress_snapshots (
     sessions_done INT DEFAULT 0,
     FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY uq_patient_date (patient_id, snap_date)
+);
+
+-- AI training examples derived from completed sessions
+CREATE TABLE IF NOT EXISTS ai_training_samples (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    session_id      INT NOT NULL,
+    patient_id      INT NOT NULL,
+    exercise_id     INT NOT NULL,
+    avg_quality     FLOAT NOT NULL,
+    avg_form_score  FLOAT NOT NULL,
+    total_reps      INT NOT NULL,
+    sets_done       INT NOT NULL,
+    feedback_tag    VARCHAR(50) NOT NULL,
+    feedback_text   VARCHAR(255) NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id)  REFERENCES sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id)  REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
 );

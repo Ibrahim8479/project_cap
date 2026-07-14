@@ -28,17 +28,74 @@ document.querySelectorAll('.mini-ring').forEach(ring => {
 
 // Progress chart
 const progressCtx = document.getElementById('progressChart')?.getContext('2d');
-if (progressCtx) {
-  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const data   = [72, 78, 74, 85, 81, 87, 82];
+let progressChartInstance = null;
 
-  new Chart(progressCtx, {
+function setPageUserHeader(user) {
+  if (!user) return;
+  const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  const initials = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
+
+  const userNameEl = document.getElementById('userName');
+  const userRoleEl = document.getElementById('userRole');
+  const userAvatarEl = document.getElementById('userAvatar');
+
+  if (userNameEl) userNameEl.textContent = name;
+  if (userRoleEl) userRoleEl.textContent = user.role || '';
+  if (userAvatarEl) userAvatarEl.textContent = initials || 'A';
+
+  const settingsName = document.querySelector('input[type="text"][name="full_name"], input[type="text"]#accountFullName');
+  const settingsEmail = document.querySelector('input[type="email"][name="email"], input[type="email"]#accountEmail');
+  const settingsPhone = document.querySelector('input[type="tel"][name="phone"], input[type="tel"]#accountPhone');
+  if (settingsName) settingsName.value = name;
+  if (settingsEmail) settingsEmail.value = user.email || '';
+  if (settingsPhone) settingsPhone.value = user.phone || '';
+}
+
+async function saveAccountSettings() {
+  const fullName = document.getElementById('accountFullName')?.value.trim() || '';
+  const email = document.getElementById('accountEmail')?.value.trim() || '';
+  const phone = document.getElementById('accountPhone')?.value.trim() || '';
+  if (!fullName || !email) {
+    alert('Please provide both full name and email address.');
+    return;
+  }
+
+  const parts = fullName.split(' ').filter(Boolean);
+  const firstName = parts.shift() || '';
+  const lastName = parts.join(' ') || '';
+
+  try {
+    const res = await fetch('php/me.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, phone })
+    });
+    const data = await res.json();
+    if (res.ok && data.user) {
+      setPageUserHeader(data.user);
+      alert('Profile settings saved successfully.');
+    } else {
+      alert(data.error || 'Unable to save settings.');
+    }
+  } catch (err) {
+    console.error('Failed to save settings', err);
+    alert('Unable to save settings.');
+  }
+}
+
+function renderProgressChart(progress = []) {
+  if (!progressCtx) return;
+  const labels = progress.map(item => item.snap_date);
+  const data = progress.map(item => Math.round(item.avg_quality || 0));
+
+  if (progressChartInstance) progressChartInstance.destroy();
+  progressChartInstance = new Chart(progressCtx, {
     type: 'line',
     data: {
-      labels,
+      labels: labels.length ? labels : ['No data'],
       datasets: [{
         label: 'Quality Score (%)',
-        data,
+        data: data.length ? data : [0],
         borderColor: '#00e5ff',
         backgroundColor: 'rgba(0,229,255,0.08)',
         fill: true,
@@ -53,7 +110,7 @@ if (progressCtx) {
       scales: {
         x: { grid: { color: '#1e2d45' }, ticks: { color: '#8b9cbf' } },
         y: {
-          min: 50, max: 100,
+          min: 0, max: 100,
           grid: { color: '#1e2d45' },
           ticks: { color: '#8b9cbf', callback: v => v + '%' }
         }
@@ -81,3 +138,90 @@ if (msgSend && msgInput && msgList) {
   msgSend.addEventListener('click', sendMsg);
   msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
 }
+
+// ------------------------------
+// Populate dashboard via php/me.php
+// ------------------------------
+async function populateDashboard() {
+  try {
+    const res = await fetch('php/me.php');
+    if (res.status === 401) { window.location.href = 'login.html'; return; }
+    const data = await res.json();
+    if (data.error) return;
+
+    const user = data.user || {};
+    setPageUserHeader(user);
+
+    if (user.role === 'patient') {
+      // populate patient dashboard
+      const sessions = data.sessions || [];
+      document.getElementById('todayPlanTitle') && (document.getElementById('todayPlanTitle').textContent = sessions[0] ? sessions[0].exercise : 'No session scheduled');
+      document.getElementById('todayPlanDetails') && (document.getElementById('todayPlanDetails').textContent = sessions[0] ? `${sessions[0].total_reps || 0} reps · ${sessions[0].status || ''}` : '');
+
+      // recent sessions
+      const tbody = document.getElementById('sessionTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        for (const s of sessions) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${new Date(s.started_at).toLocaleString()}</td><td>${s.exercise}</td><td>${s.total_reps||0}</td><td>${s.avg_quality||0}%</td><td>${s.status||''}</td>`;
+          tbody.appendChild(tr);
+        }
+      }
+
+      // progress and stats
+      const progress = data.progress || [];
+      let totalReps = 0, avg = 0;
+      for (const p of progress) { totalReps += p.total_reps || 0; avg += (p.avg_quality || 0); }
+      avg = progress.length ? Math.round(avg / progress.length) : 0;
+      document.getElementById('totalReps') && (document.getElementById('totalReps').textContent = totalReps);
+      document.getElementById('qualityScore') && (document.getElementById('qualityScore').textContent = avg + '%');
+      document.getElementById('sessionsDone') && (document.getElementById('sessionsDone').textContent = sessions.length);
+      document.getElementById('adherence') && (document.getElementById('adherence').textContent = `${avg}% adherence`);
+      renderProgressChart(progress.reverse());
+
+    } else if (user.role === 'clinician') {
+      document.getElementById('totalPatients') && (document.getElementById('totalPatients').textContent = data.patient_count || 0);
+      document.getElementById('sessionsToday') && (document.getElementById('sessionsToday').textContent = data.sessions_today || 0);
+      document.getElementById('avgAdherence') && (document.getElementById('avgAdherence').textContent = (data.avg_adherence || 0) + '%');
+      document.getElementById('adherenceBar') && (document.getElementById('adherenceBar').style.width = (data.avg_adherence || 0) + '%');
+
+      // load patient list using existing helper if available
+      if (typeof loadPatientList === 'function') loadPatientList();
+    }
+
+  } catch (err) {
+    console.error('Failed to populate dashboard', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  populateDashboard();
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveAccountSettings);
+});
+
+// ------------------------------
+// Load exercise library for exercises.html
+// ------------------------------
+async function loadExercises() {
+  const list = document.getElementById('exerciseList');
+  if (!list) return;
+  try {
+    const res = await fetch('php/exercises_api.php?action=list');
+    if (res.status === 401) { window.location.href = 'login.html'; return; }
+    const data = await res.json();
+    const exercises = data.exercises || [];
+    list.innerHTML = '';
+    for (const e of exercises) {
+      const node = document.createElement('div');
+      node.className = 'exercise-item';
+      node.innerHTML = `<div class="ex-icon">🏋</div><div class="ex-info"><div class="ex-name">${e.name}</div><div class="ex-detail text-muted">${e.description || ''}</div></div><div class="ex-meta">${e.target_reps} reps · ${e.target_sets} sets</div>`;
+      list.appendChild(node);
+    }
+  } catch (err) {
+    console.error('Failed to load exercises', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadExercises);

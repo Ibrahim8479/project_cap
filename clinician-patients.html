@@ -11,8 +11,8 @@
 <body class="app-page">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <span class="nav-logo">⟁</span>
-      <span>PhysioTrack</span>
+      <img src="images/logo.svg" class="nav-logo" alt="logo">
+      <span class="brand-text">PhysioTrack</span>
     </div>
     <nav class="sidebar-nav">
       <a href="clinician.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
@@ -29,7 +29,7 @@
           <div class="user-role" id="userRole"></div>
         </div>
       </div>
-      <a href="login.html" class="btn btn-ghost btn-sm">Logout</a>
+      <a href="php/logout.php" class="btn btn-ghost btn-sm">Logout</a>
     </div>
   </aside>
 
@@ -71,45 +71,15 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            <tr class="patient-row" data-id="1">
-              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">S</div><div><div style="font-size:.875rem;font-weight:600;">Sathey Blesson</div><div class="text-muted" style="font-size:.75rem;">ACL recovery · Day 21</div></div></div></td>
-              <td class="text-muted" style="font-size:.8rem;">Just now</td>
-              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:88%;background:var(--success);"></div></div><span class="text-success" style="font-size:.8rem;">88%</span></td>
-              <td><span class="text-success">84%</span></td>
-              <td><span class="badge badge-teal"><span class="live-dot" style="width:6px;height:6px;"></span> Live</span></td>
-              <td><a href="clinician-patient.html?id=1" class="btn btn-outline btn-sm">View</a></td>
-            </tr>
-            <tr class="patient-row" data-id="2">
-              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">P</div><div><div style="font-size:.875rem;font-weight:600;">Patient Smith</div><div class="text-muted" style="font-size:.75rem;">Post-surgery knee · Day 9</div></div></div></td>
-              <td class="text-muted" style="font-size:.8rem;">2 min ago</td>
-              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:72%;background:var(--teal);"></div></div><span style="font-size:.8rem;color:var(--teal);">72%</span></td>
-              <td><span style="color:var(--teal);">79%</span></td>
-              <td><span class="badge badge-teal"><span class="live-dot" style="width:6px;height:6px;"></span> Live</span></td>
-              <td><a href="clinician-patient.html?id=2" class="btn btn-outline btn-sm">View</a></td>
-            </tr>
-            <tr class="patient-row" data-id="3">
-              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">R</div><div><div style="font-size:.875rem;font-weight:600;">Rothsy Blocom</div><div class="text-muted" style="font-size:.75rem;">Hip replacement · Day 35</div></div></div></td>
-              <td class="text-muted" style="font-size:.8rem;">1 hr ago</td>
-              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:65%;background:var(--warning);"></div></div><span style="font-size:.8rem;color:var(--warning);">65%</span></td>
-              <td><span style="color:var(--warning);">71%</span></td>
-              <td><span class="badge badge-warning">Resting</span></td>
-              <td><a href="clinician-patient.html?id=3" class="btn btn-outline btn-sm">View</a></td>
-            </tr>
-            <tr class="patient-row" data-id="4">
-              <td><div class="patient-cell"><div class="user-avatar" style="width:30px;height:30px;font-size:.75rem;">V</div><div><div style="font-size:.875rem;font-weight:600;">Vamina Seiroph</div><div class="text-muted" style="font-size:.75rem;">Sports injury · Day 7</div></div></div></td>
-              <td class="text-muted" style="font-size:.8rem;">3 hr ago</td>
-              <td><div class="mini-bar" style="width:100px;"><div class="mini-fill" style="width:45%;background:var(--danger);"></div></div><span style="font-size:.8rem;color:var(--danger);">45%</span></td>
-              <td><span style="color:var(--danger);">68%</span></td>
-              <td><span class="badge badge-danger">Needs Attention</span></td>
-              <td><a href="clinician-patient.html?id=4" class="btn btn-outline btn-sm">View</a></td>
-            </tr>
+          <tbody id="patientTbody">
+            <!-- rows will be populated dynamically -->
           </tbody>
         </table>
       </div>
     </div>
   </main>
 
+  <script src="js/main.js"></script>
   <script src="js/clinician.js"></script>
 </body>
 </html>

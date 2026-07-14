@@ -51,7 +51,7 @@ session_regenerate_id(true);
 // Remember-me cookie (7 days)
 if ($remember) {
     $token = bin2hex(random_bytes(32));
-    setcookie('remember_token', $token, time() + 7 * 86400, '/', '', true, true);
+    setcookie('remember_token', $token, time() + 7 * 86400, '/', '', false, true);
     // TODO: store token hash in a remember_tokens table
 }
 

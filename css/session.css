@@ -1,3 +1,5 @@
+/* Session container */
+.session-container { display:grid; grid-template-columns: 1fr 380px; gap: 1rem; padding: 2rem; align-items:start; }
 /* session.css */
 
 .session-layout {

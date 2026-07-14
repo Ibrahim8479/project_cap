@@ -30,10 +30,16 @@ function getDB(): PDO {
 // Session helper
 function startSecureSession(): void {
     if (session_status() === PHP_SESSION_NONE) {
+        // Detect whether the current connection is secure (HTTPS).
+        // For local development (localhost / no HTTPS) we must not set 'secure' to true
+        // otherwise the session cookie will not be sent over plain HTTP.
+        $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
         session_set_cookie_params([
             'lifetime' => 0,
             'path'     => '/',
-            'secure'   => true,
+            'secure'   => $isSecure,
             'httponly' => true,
             'samesite' => 'Strict',
         ]);

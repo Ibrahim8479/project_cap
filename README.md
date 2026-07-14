@@ -18,17 +18,45 @@ This project is a static frontend prototype for a lower-body telerehabilitation 
 
 ## How to run locally
 
-1. Open `index.html` in your browser (double-click or use a local static server).
-2. Pages are static; PHP endpoints require a PHP server and a configured database.
+1. Install XAMPP or another local PHP+MySQL environment.
+2. Place this repository in your web server root, e.g. `C:\xampp\htdocs\project_cap`.
+3. Import `schema.sql` into MySQL to create the `rehabiai_db` database and tables.
+4. Start Apache and MySQL.
+5. Open the app in your browser at `http://localhost/project_cap/`.
 
-Quick local static server (Python 3):
+### Using the PHP backend
+
+- `login.html` submits to `php/login.php`
+- `register.html` submits to `php/register.php`
+- `php/me.php` provides the authenticated user and dashboard data
+- `php/exercises_api.php` loads exercises
+- `php/session_api.php` stores session frames and messages
+- `php/clinician_api.php` provides clinician patient data
+- `php/ai_api.php` provides AI feedback and stores training samples from completed sessions
+- `php/infer_model.php` performs model-based exercise classification from landmark features
+- `js/session.js` now uses MediaPipe Pose for live landmark detection, rep counting, form scoring, and exercise classification when camera access is enabled
+
+### Example local PHP server command
+
+If you prefer the built-in PHP server instead of XAMPP, run from the repo root:
+
 ```bash
-cd "c:/Users/ibmah/OneDrive/Desktop/Project_capson"
-python -m http.server 8000
-# then visit http://localhost:8000 in your browser
+cd c:/xampp/htdocs/project_cap
+php -S localhost:8000
 ```
 
-To enable PHP endpoints, run a local PHP server and ensure the database `rehabiai_db` exists per `schema.sql`.
+Then visit `http://localhost:8000`.
+
+### Test user logins
+
+The schema includes seeded test accounts if you import `schema.sql`:
+
+- Clinician: `clinician@test.local` / `password123`
+- Patient: `patient@test.local` / `password123`
+
+The seeded patient is already linked to the clinician via clinician code `DR-4892`.
+
+If you add a new patient, the app will persist the user and assign them to a clinician if you provide a valid `clinician_code`.
 
 ## File references
 
@@ -64,3 +92,36 @@ To enable PHP endpoints, run a local PHP server and ensure the database `rehabia
 - Improve copy or populate pages with more realistic sample data.
 
 If you want I can run a quick browser console lint pass (basic) or add a simple test harness for the JS functions.
+
+## AI model & testing
+
+The project includes a small ML training pipeline and test helpers.
+
+- To (re)train the synthetic model and produce JSON artifacts:
+
+```bash
+cd c:/xampp/htdocs/project_cap
+.venv\Scripts\python.exe python\train_model.py
+```
+
+- To run the in-repo integration tests (uses the trained model):
+
+```bash
+.venv\Scripts\python.exe python\integration_test.py
+```
+
+- To run a full HTTP end-to-end test against a running PHP server:
+
+1. Start the PHP built-in server from the repo root (or use XAMPP/Apache):
+
+```powershell
+php -S localhost:8000 -t .
+```
+
+2. In the project venv run the e2e script which logs in as the seeded patient and exercises the API:
+
+```bash
+.venv\Scripts\python.exe python\e2e_test.py --base http://localhost:8000
+```
+
+If PHP is not on your PATH, use XAMPP's Apache to serve the repo root instead and open `http://localhost/project_cap/` in the browser.

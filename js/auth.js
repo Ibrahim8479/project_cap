@@ -42,24 +42,17 @@ if (togglePwd) {
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
   loginForm.addEventListener('submit', e => {
-    e.preventDefault();
     const email = loginForm.querySelector('[name=email]').value.trim();
     const pwd   = loginForm.querySelector('[name=password]').value;
-    const role  = roleInput?.value || 'patient';
     const errEl = document.getElementById('loginError');
 
     if (!email || !pwd) {
+      e.preventDefault();
       showError(errEl, 'Please fill in all fields.');
       return;
     }
 
-    // Demo: redirect by role (replace with real PHP auth)
-    // In production this submits to php/login.php
-    if (role === 'clinician') {
-      window.location.href = 'clinician.html';
-    } else {
-      window.location.href = 'dashboard.html';
-    }
+    // allow normal form submission to PHP backend
   });
 }
 
@@ -67,25 +60,48 @@ if (loginForm) {
 const registerForm = document.getElementById('registerForm');
 if (registerForm) {
   registerForm.addEventListener('submit', e => {
-    e.preventDefault();
     const pwd1  = registerForm.querySelector('[name=password]').value;
     const pwd2  = registerForm.querySelector('[name=password_confirm]').value;
     const errEl = document.getElementById('registerError');
 
     if (pwd1 !== pwd2) {
+      e.preventDefault();
       showError(errEl, 'Passwords do not match.');
       return;
     }
     if (pwd1.length < 8) {
+      e.preventDefault();
       showError(errEl, 'Password must be at least 8 characters.');
       return;
     }
 
-    // Demo redirect (replace with real PHP form submit)
-    const role = roleInput?.value || 'patient';
-    window.location.href = role === 'clinician' ? 'clinician.html' : 'dashboard.html';
+    // allow normal form submission to PHP backend
   });
 }
+
+function readErrorFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const error = params.get('error');
+  if (!error) return;
+  const loginErrEl = document.getElementById('loginError');
+  const registerErrEl = document.getElementById('registerError');
+  const messages = {
+    missing_fields: 'Please fill in all required fields.',
+    invalid_email: 'Please enter a valid email address.',
+    invalid_credentials: 'Invalid email or password.',
+    wrong_role: 'Please select the correct role.',
+    email_taken: 'This email is already registered.',
+  };
+  const msg = messages[error] || decodeURIComponent(error.replace(/\+/g, ' ').replace(/_/g, ' '));
+  if (loginErrEl && window.location.pathname.endsWith('login.html')) {
+    showError(loginErrEl, msg);
+  }
+  if (registerErrEl && window.location.pathname.endsWith('register.html')) {
+    showError(registerErrEl, msg);
+  }
+}
+
+readErrorFromQuery();
 
 function showError(el, msg) {
   if (!el) return;

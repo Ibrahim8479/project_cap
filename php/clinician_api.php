@@ -18,6 +18,7 @@ $body   = json_decode(file_get_contents('php://input'), true) ?? [];
 switch ($action) {
 
     case 'patients':
+    case 'list_patients':
         $stmt = $db->prepare('
             SELECT u.id, u.first_name, u.last_name, u.condition_type, u.created_at,
                    COALESCE(ps.avg_quality, 0) AS avg_quality,
