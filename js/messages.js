@@ -9,9 +9,11 @@ function renderMessage(message) {
   const isSelf = message.sender_id === currentUserId;
   const container = document.createElement('div');
   container.className = `msg ${isSelf ? 'msg-sent' : 'msg-received'}`;
+  const senderName = message.first_name ? `${message.first_name} ${message.last_name || ''}`.trim() : '';
+  const initials = senderName ? (message.first_name?.charAt(0) || '') + (message.last_name?.charAt(0) || '') : '';
   container.innerHTML = `
+    <div class="msg-meta">${!isSelf ? `<strong class="msg-sender">${senderName}</strong>` : ''}<span class="msg-time-small">${new Date(message.sent_at).toLocaleString()}</span></div>
     <div class="msg-body">${message.body}</div>
-    <div class="msg-time">${new Date(message.sent_at).toLocaleString()}</div>
   `;
   return container;
 }
@@ -54,11 +56,13 @@ async function loadConversation(partnerId) {
       msgList.innerHTML = `<div class="text-muted">${data.error}</div>`;
       return;
     }
+    // preserve scroll position if near bottom
+    const atBottom = msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight < 40;
     msgList.innerHTML = '';
     for (const m of data.messages || []) {
       msgList.appendChild(renderMessage(m));
     }
-    msgList.scrollTop = msgList.scrollHeight;
+    if (atBottom) msgList.scrollTop = msgList.scrollHeight;
   } catch (err) {
     console.error('Failed to load messages', err);
     msgList.innerHTML = '<div class="text-muted">Could not load messages.</div>';
@@ -78,6 +82,8 @@ async function initMessagesPage() {
     }
     conversationPartnerId = partnerId;
     await loadConversation(partnerId);
+    // start polling for new messages every 3s
+    setInterval(() => loadConversation(conversationPartnerId), 3000);
   } else {
     try {
       const res = await fetch('php/clinician_api.php?action=patients');
@@ -89,6 +95,7 @@ async function initMessagesPage() {
       }
       conversationPartnerId = firstPatient.id;
       await loadConversation(conversationPartnerId);
+      setInterval(() => loadConversation(conversationPartnerId), 3000);
     } catch (err) {
       console.error('Failed to load clinician patients', err);
       msgList.innerHTML = '<div class="text-muted">Could not load conversation partner.</div>';
@@ -110,8 +117,8 @@ async function sendMessage() {
       console.error('Send failed', data);
       return;
     }
-    msgList.appendChild(renderMessage({ sender_id: currentUserId, body: text, sent_at: new Date().toISOString() }));
-    msgList.scrollTop = msgList.scrollHeight;
+    // refresh conversation from server (ensures timestamps and read flags updated)
+    await loadConversation(conversationPartnerId);
     msgInput.value = '';
   } catch (err) {
     console.error('Send message failed', err);

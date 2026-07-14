@@ -21,25 +21,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($body['email'] ?? '');
     $phone = trim($body['phone'] ?? '');
 
-    if (!$first_name || !$last_name || !$email) {
-        echo json_encode(['error' => 'First name, last name, and email are required.']);
-        exit;
+    // If profile fields are provided, validate and update
+    if ($first_name || $last_name || $email) {
+        if (!$first_name || !$last_name || !$email) {
+            echo json_encode(['error' => 'First name, last name, and email are required.']);
+            exit;
+        }
+
+        $check = $db->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
+        $check->execute([$email, $uid]);
+        if ($check->fetch()) {
+            echo json_encode(['error' => 'That email address is already registered.']);
+            exit;
+        }
+
+        $stmt = $db->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?');
+        $stmt->execute([$first_name, $last_name, $email, $phone, $uid]);
     }
 
-    $check = $db->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
-    $check->execute([$email, $uid]);
-    if ($check->fetch()) {
-        echo json_encode(['error' => 'That email address is already registered.']);
-        exit;
+    // Preferences: optionally update preference columns on the users table
+    $prefs = $body['prefs'] ?? [];
+    $prefReceive = isset($body['receive_reminders']) ? (bool)$body['receive_reminders'] : (isset($prefs['receive_reminders']) ? (bool)$prefs['receive_reminders'] : null);
+    $prefRealtime = isset($body['realtime_feedback']) ? (bool)$body['realtime_feedback'] : (isset($prefs['realtime_feedback']) ? (bool)$prefs['realtime_feedback'] : null);
+    $prefDark = isset($body['dark_mode']) ? (bool)$body['dark_mode'] : (isset($prefs['dark_mode']) ? (bool)$prefs['dark_mode'] : null);
+
+    // Ensure columns exist (safe for development). Add columns if missing.
+    $cols = $db->query("SHOW COLUMNS FROM users LIKE 'receive_reminders'")->fetch();
+    if (!$cols) {
+        $db->exec("ALTER TABLE users ADD COLUMN receive_reminders TINYINT(1) DEFAULT 1");
+    }
+    $cols = $db->query("SHOW COLUMNS FROM users LIKE 'realtime_feedback'")->fetch();
+    if (!$cols) {
+        $db->exec("ALTER TABLE users ADD COLUMN realtime_feedback TINYINT(1) DEFAULT 1");
+    }
+    $cols = $db->query("SHOW COLUMNS FROM users LIKE 'dark_mode'")->fetch();
+    if (!$cols) {
+        $db->exec("ALTER TABLE users ADD COLUMN dark_mode TINYINT(1) DEFAULT 0");
     }
 
-    $stmt = $db->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?');
-    $stmt->execute([$first_name, $last_name, $email, $phone, $uid]);
+    $updates = [];
+    $params = [];
+    if ($prefReceive !== null) { $updates[] = 'receive_reminders = ?'; $params[] = $prefReceive ? 1 : 0; }
+    if ($prefRealtime !== null) { $updates[] = 'realtime_feedback = ?'; $params[] = $prefRealtime ? 1 : 0; }
+    if ($prefDark !== null) { $updates[] = 'dark_mode = ?'; $params[] = $prefDark ? 1 : 0; }
+    if (count($updates)) {
+        $params[] = $uid;
+        $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ?';
+        $db->prepare($sql)->execute($params);
+    }
 }
 
 $uStmt = $db->prepare('SELECT id, first_name, last_name, email, role, condition_type, clinic_name, phone FROM users WHERE id = ? LIMIT 1');
 $uStmt->execute([$uid]);
 $user = $uStmt->fetch();
+
+// If preference columns exist, include them
+$prefCols = $db->query("SHOW COLUMNS FROM users LIKE 'receive_reminders'")->fetch();
+if ($prefCols) {
+    $pstmt = $db->prepare('SELECT receive_reminders, realtime_feedback, dark_mode FROM users WHERE id = ? LIMIT 1');
+    $pstmt->execute([$uid]);
+    $prefs = $pstmt->fetch();
+    $user['preferences'] = [
+        'receive_reminders' => (bool)($prefs['receive_reminders'] ?? 1),
+        'realtime_feedback' => (bool)($prefs['realtime_feedback'] ?? 1),
+        'dark_mode' => (bool)($prefs['dark_mode'] ?? 0),
+    ];
+}
 
 if (!$user) {
     echo json_encode(['error' => 'User not found']);

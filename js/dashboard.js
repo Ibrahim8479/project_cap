@@ -152,6 +152,20 @@ async function populateDashboard() {
     const user = data.user || {};
     setPageUserHeader(user);
 
+    // If server returned preferences, apply them to settings UI and localStorage
+    if (data.user && data.user.preferences) {
+      const prefs = data.user.preferences;
+      const elReceive = document.getElementById('prefReceiveReminders');
+      const elRealtime = document.getElementById('prefRealtimeFeedback');
+      const elDark = document.getElementById('prefDarkMode');
+      if (elReceive) elReceive.checked = !!prefs.receive_reminders;
+      if (elRealtime) elRealtime.checked = !!prefs.realtime_feedback;
+      if (elDark) elDark.checked = !!prefs.dark_mode;
+      localStorage.setItem('pref.receiveReminders', prefs.receive_reminders ? '1' : '0');
+      localStorage.setItem('pref.realtimeFeedback', prefs.realtime_feedback ? '1' : '0');
+      localStorage.setItem('pref.darkMode', prefs.dark_mode ? '1' : '0');
+    }
+
     if (user.role === 'patient') {
       // populate patient dashboard
       const sessions = data.sessions || [];
@@ -199,6 +213,43 @@ document.addEventListener('DOMContentLoaded', () => {
   populateDashboard();
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveAccountSettings);
+});
+
+// --- Preferences: load/save to localStorage for now ---
+function loadPreferences() {
+  const receive = localStorage.getItem('pref.receiveReminders') === '1';
+  const realtime = localStorage.getItem('pref.realtimeFeedback') === '1';
+  const dark = localStorage.getItem('pref.darkMode') === '1';
+  const elReceive = document.getElementById('prefReceiveReminders');
+  const elRealtime = document.getElementById('prefRealtimeFeedback');
+  const elDark = document.getElementById('prefDarkMode');
+  if (elReceive) elReceive.checked = receive;
+  if (elRealtime) elRealtime.checked = realtime;
+  if (elDark) elDark.checked = dark;
+}
+
+function savePreference(key, value) {
+  localStorage.setItem(key, value ? '1' : '0');
+  // Also attempt to persist server-side for logged-in users
+  const shortKey = key.replace('pref.', '');
+  const body = {};
+  if (shortKey === 'receiveReminders') body.receive_reminders = value ? 1 : 0;
+  if (shortKey === 'realtimeFeedback') body.realtime_feedback = value ? 1 : 0;
+  if (shortKey === 'darkMode') body.dark_mode = value ? 1 : 0;
+  if (Object.keys(body).length === 0) return;
+  fetch('php/me.php', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  }).catch(() => {/* ignore network errors, localStorage still holds */});
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadPreferences();
+  const elReceive = document.getElementById('prefReceiveReminders');
+  const elRealtime = document.getElementById('prefRealtimeFeedback');
+  const elDark = document.getElementById('prefDarkMode');
+  if (elReceive) elReceive.addEventListener('change', e => savePreference('pref.receiveReminders', e.target.checked));
+  if (elRealtime) elRealtime.addEventListener('change', e => savePreference('pref.realtimeFeedback', e.target.checked));
+  if (elDark) elDark.addEventListener('change', e => savePreference('pref.darkMode', e.target.checked));
 });
 
 // ------------------------------

@@ -77,3 +77,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
   });
 });
+
+// Shared: load current user and update header/user-chip across pages
+async function loadSharedCurrentUser() {
+  try {
+    const res = await fetch('php/me.php');
+    if (res.status === 401) return; // not logged in
+    const data = await res.json();
+    if (!data || !data.user) return;
+    const user = data.user;
+    // set header elements
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
+    const userAvatarEl = document.getElementById('userAvatar');
+    if (userNameEl) userNameEl.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    if (userRoleEl) {
+      const extra = user.role === 'patient' && data.sessions && data.sessions.length ? ` · Day ${data.sessions.length}` : '';
+      userRoleEl.textContent = (user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : '') + extra;
+    }
+    if (userAvatarEl) {
+      const initials = `${(user.first_name||'').charAt(0)}${(user.last_name||'').charAt(0)}`.toUpperCase();
+      userAvatarEl.textContent = initials || 'A';
+    }
+
+    // sync server preferences into localStorage if available
+    if (data.user.preferences) {
+      const prefs = data.user.preferences;
+      localStorage.setItem('pref.receiveReminders', prefs.receive_reminders ? '1' : '0');
+      localStorage.setItem('pref.realtimeFeedback', prefs.realtime_feedback ? '1' : '0');
+      localStorage.setItem('pref.darkMode', prefs.dark_mode ? '1' : '0');
+    }
+  } catch (err) {
+    // silently ignore - shared loader shouldn't block page
+    console.debug('loadSharedCurrentUser failed', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadSharedCurrentUser);
