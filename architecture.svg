@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1060" role="img" aria-labelledby="title description">
+  <title id="title">AI Telerehabilitation System Architecture</title>
+  <desc id="description">A lower-body rehabilitation workflow from patient sign-in and webcam pose tracking through movement processing, MLP exercise recognition, feedback, MySQL storage, and patient and physiotherapist dashboards.</desc>
+  <defs>
+    <linearGradient id="header" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1f2"/>
+      <stop offset="1" stop-color="#fff8f8"/>
+    </linearGradient>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#c7354b"/>
+    </marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#159a9c"/>
+    </marker>
+    <marker id="arrow-burgundy" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#702c42"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #30232b; }
+      .title { font-size: 34px; font-weight: 700; fill: #542234; }
+      .subtitle { font-size: 17px; fill: #725e66; }
+      .lane-title { font-size: 16px; font-weight: 700; letter-spacing: 1.4px; }
+      .step { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+      .card-title { font-size: 19px; font-weight: 700; }
+      .body { font-size: 15px; fill: #5e5056; }
+      .small { font-size: 13px; fill: #6f6067; }
+      .service-title { font-size: 18px; font-weight: 700; }
+      .card { fill: #ffffff; stroke: #eadde1; stroke-width: 1.5; }
+      .shadow { filter: drop-shadow(0 5px 12px #53203312); }
+      .solid-flow { fill: none; stroke: #c7354b; stroke-width: 3; marker-end: url(#arrow-red); }
+      .analysis-flow { fill: none; stroke: #159a9c; stroke-width: 3; marker-end: url(#arrow-teal); }
+      .data-flow { fill: none; stroke: #702c42; stroke-width: 3; marker-end: url(#arrow-burgundy); }
+      .return-flow { fill: none; stroke: #159a9c; stroke-width: 2.5; stroke-dasharray: 8 7; marker-end: url(#arrow-teal); }
+    </style>
+  </defs>
+
+  <rect width="1440" height="1060" rx="24" fill="#fffdfd"/>
+  <path d="M24 0h1392a24 24 0 0 1 24 24v118H0V24A24 24 0 0 1 24 0Z" fill="url(#header)"/>
+  <path d="M62 49h8v39h-8z" rx="4" fill="#c7354b"/>
+  <text x="92" y="68" class="title">AI Telerehabilitation System</text>
+  <text x="92" y="101" class="subtitle">Lower-body monitoring · live movement analysis · clinician follow-up</text>
+  <rect x="1120" y="49" width="248" height="42" rx="21" fill="#ffffff" stroke="#efd9df"/>
+  <circle cx="1145" cy="70" r="6" fill="#159a9c"/>
+  <text x="1161" y="76" class="small" font-weight="600">CURRENT IMPLEMENTATION</text>
+
+  <rect x="40" y="160" width="1360" height="420" rx="20" fill="#fff8f8" stroke="#f0dfe3"/>
+  <circle cx="75" cy="194" r="8" fill="#c7354b"/>
+  <text x="96" y="200" class="lane-title" fill="#8d2e43">LIVE PATIENT SESSION</text>
+  <text x="1360" y="199" class="small" text-anchor="end">Real-time analysis in the browser</text>
+
+  <g class="shadow">
+    <rect x="60" y="235" width="230" height="250" rx="16" class="card"/>
+    <rect x="60" y="235" width="230" height="8" rx="4" fill="#c7354b"/>
+    <text x="82" y="273" class="step" fill="#a32e43">01 · PATIENT</text>
+    <text x="82" y="310" class="card-title">Start exercise</text>
+    <text x="82" y="348" class="body">
+      <tspan x="82" dy="0">Sign in and choose an</tspan>
+      <tspan x="82" dy="23">assigned lower-body</tspan>
+      <tspan x="82" dy="23">exercise.</tspan>
+    </text>
+    <rect x="82" y="435" width="142" height="27" rx="13.5" fill="#fff0f2"/>
+    <text x="153" y="453" class="small" text-anchor="middle" fill="#9e3447">Patient web app</text>
+
+    <rect x="325" y="235" width="230" height="250" rx="16" class="card"/>
+    <rect x="325" y="235" width="230" height="8" rx="4" fill="#159a9c"/>
+    <text x="347" y="273" class="step" fill="#137d80">02 · POSE TRACKING</text>
+    <text x="347" y="310" class="card-title">Camera + MediaPipe</text>
+    <text x="347" y="348" class="body">
+      <tspan x="347" dy="0">Webcam video is used to</tspan>
+      <tspan x="347" dy="23">detect body landmarks,</tspan>
+      <tspan x="347" dy="23">including hips, knees,</tspan>
+      <tspan x="347" dy="23">and ankles.</tspan>
+    </text>
+    <rect x="347" y="435" width="165" height="27" rx="13.5" fill="#e9f8f7"/>
+    <text x="429" y="453" class="small" text-anchor="middle" fill="#137d80">Browser-based pose</text>
+
+    <rect x="590" y="235" width="230" height="250" rx="16" class="card"/>
+    <rect x="590" y="235" width="230" height="8" rx="4" fill="#159a9c"/>
+    <text x="612" y="273" class="step" fill="#137d80">03 · PROCESSING</text>
+    <text x="612" y="310" class="card-title">Movement features</text>
+    <text x="612" y="348" class="body">
+      <tspan x="612" dy="0">JavaScript derives joint</tspan>
+      <tspan x="612" dy="23">angles and six model</tspan>
+      <tspan x="612" dy="23">features; tracks reps and</tspan>
+      <tspan x="612" dy="23">rule-based form cues.</tspan>
+    </text>
+    <rect x="612" y="435" width="178" height="27" rx="13.5" fill="#e9f8f7"/>
+    <text x="701" y="453" class="small" text-anchor="middle" fill="#137d80">Angles · reps · form</text>
+
+    <rect x="855" y="235" width="230" height="250" rx="16" class="card"/>
+    <rect x="855" y="235" width="230" height="8" rx="4" fill="#159a9c"/>
+    <text x="877" y="273" class="step" fill="#137d80">04 · RECOGNITION</text>
+    <text x="877" y="310" class="card-title">Exercise classifier</text>
+    <text x="877" y="348" class="body">
+      <tspan x="877" dy="0">Feature vector is sent to</tspan>
+      <tspan x="877" dy="23">the PHP inference API.</tspan>
+      <tspan x="877" dy="23">A JSON MLP model and</tspan>
+      <tspan x="877" dy="23">scaler return a prediction.</tspan>
+    </text>
+    <rect x="877" y="435" width="164" height="27" rx="13.5" fill="#e9f8f7"/>
+    <text x="959" y="453" class="small" text-anchor="middle" fill="#137d80">Per-frame prediction</text>
+
+    <rect x="1120" y="235" width="230" height="250" rx="16" class="card"/>
+    <rect x="1120" y="235" width="230" height="8" rx="4" fill="#23a982"/>
+    <text x="1142" y="273" class="step" fill="#197b60">05 · PATIENT FEEDBACK</text>
+    <text x="1142" y="310" class="card-title">Coach in real time</text>
+    <text x="1142" y="348" class="body">
+      <tspan x="1142" dy="0">Show repetitions, form</tspan>
+      <tspan x="1142" dy="23">cues, and movement-quality</tspan>
+      <tspan x="1142" dy="23">estimates during the</tspan>
+      <tspan x="1142" dy="23">exercise session.</tspan>
+    </text>
+    <rect x="1142" y="435" width="151" height="27" rx="13.5" fill="#eaf8f2"/>
+    <text x="1217" y="453" class="small" text-anchor="middle" fill="#197b60">Live on-screen cues</text>
+  </g>
+
+  <path d="M290 360h29" class="solid-flow"/>
+  <path d="M555 360h29" class="analysis-flow"/>
+  <path d="M820 360h29" class="analysis-flow"/>
+  <path d="M1085 360h29" class="analysis-flow"/>
+  <path d="M1235 485v65H175v-55" class="return-flow"/>
+  <rect x="565" y="535" width="280" height="30" rx="15" fill="#fff8f8"/>
+  <text x="705" y="555" class="small" text-anchor="middle" fill="#137d80">live cues return to the patient screen</text>
+
+  <rect x="40" y="610" width="1360" height="410" rx="20" fill="#faf7f8" stroke="#eadde1"/>
+  <circle cx="75" cy="644" r="8" fill="#702c42"/>
+  <text x="96" y="650" class="lane-title" fill="#702c42">SECURE DATA &amp; CARE-TEAM FOLLOW-UP</text>
+  <text x="1360" y="649" class="small" text-anchor="end">Saved records are available to authorized users</text>
+
+  <g class="shadow">
+    <rect x="90" y="710" width="330" height="205" rx="16" class="card"/>
+    <rect x="90" y="710" width="330" height="8" rx="4" fill="#702c42"/>
+    <text x="116" y="751" class="step" fill="#702c42">APPLICATION SERVICES</text>
+    <text x="116" y="789" class="service-title">PHP backend &amp; APIs</text>
+    <text x="116" y="827" class="body">
+      <tspan x="116" dy="0">Authenticates users; handles session</tspan>
+      <tspan x="116" dy="23">lifecycle, frames, progress, messages,</tspan>
+      <tspan x="116" dy="23">and clinician access.</tspan>
+    </text>
+
+    <rect x="505" y="710" width="330" height="205" rx="16" class="card"/>
+    <rect x="505" y="710" width="330" height="8" rx="4" fill="#702c42"/>
+    <text x="531" y="751" class="step" fill="#702c42">PERSISTENT STORAGE</text>
+    <text x="531" y="789" class="service-title">MySQL database</text>
+    <text x="531" y="827" class="body">
+      <tspan x="531" dy="0">Users and clinician links · sessions</tspan>
+      <tspan x="531" dy="23">Sampled frames · progress snapshots</tspan>
+      <tspan x="531" dy="23">Messages and activity history</tspan>
+    </text>
+
+    <rect x="930" y="710" width="205" height="205" rx="16" class="card"/>
+    <rect x="930" y="710" width="205" height="8" rx="4" fill="#c7354b"/>
+    <text x="953" y="751" class="step" fill="#a32e43">PATIENT VIEW</text>
+    <text x="953" y="789" class="service-title">Dashboard</text>
+    <text x="953" y="827" class="body">
+      <tspan x="953" dy="0">Session history</tspan>
+      <tspan x="953" dy="23">Progress and adherence</tspan>
+      <tspan x="953" dy="23">Exercise activity</tspan>
+    </text>
+
+    <rect x="1175" y="710" width="205" height="205" rx="16" class="card"/>
+    <rect x="1175" y="710" width="205" height="8" rx="4" fill="#702c42"/>
+    <text x="1198" y="751" class="step" fill="#702c42">PHYSIOTHERAPIST</text>
+    <text x="1198" y="789" class="service-title">Care dashboard</text>
+    <text x="1198" y="827" class="body">
+      <tspan x="1198" dy="0">Linked patients</tspan>
+      <tspan x="1198" dy="23">Sessions and observations</tspan>
+      <tspan x="1198" dy="23">Progress and adherence</tspan>
+    </text>
+  </g>
+
+  <path d="M705 570v25H65v217h17" class="data-flow"/>
+  <path d="M420 812h77" class="data-flow"/>
+  <path d="M835 750v-68h197v20" class="data-flow"/>
+  <path d="M835 750v-68h442v20" class="data-flow"/>
+
+  <rect x="90" y="949" width="1260" height="42" rx="12" fill="#fff" stroke="#eadde1"/>
+  <path d="M116 970h46" class="solid-flow"/>
+  <text x="174" y="975" class="small">live patient flow</text>
+  <path d="M367 970h46" class="analysis-flow"/>
+  <text x="425" y="975" class="small">pose / model analysis</text>
+  <path d="M666 970h46" class="data-flow"/>
+  <text x="724" y="975" class="small">saved data and dashboard access</text>
+  <path d="M1045 970h46" class="return-flow"/>
+  <text x="1103" y="975" class="small">real-time response</text>
+</svg>

@@ -13,6 +13,20 @@ if (empty($_SESSION['user_id'])) {
 $db = getDB();
 $uid = (int)$_SESSION['user_id'];
 
+// Older local databases may predate profile and preference fields in schema.sql.
+$settingsColumns = [
+    'phone' => 'VARCHAR(50) NULL',
+    'receive_reminders' => 'TINYINT(1) NOT NULL DEFAULT 1',
+    'realtime_feedback' => 'TINYINT(1) NOT NULL DEFAULT 1',
+    'dark_mode' => 'TINYINT(1) NOT NULL DEFAULT 0',
+];
+foreach ($settingsColumns as $column => $definition) {
+    $columnStmt = $db->query("SHOW COLUMNS FROM users LIKE '$column'");
+    if (!$columnStmt->fetch()) {
+        $db->exec("ALTER TABLE users ADD COLUMN $column $definition");
+    }
+}
+
 $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -45,20 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $prefRealtime = isset($body['realtime_feedback']) ? (bool)$body['realtime_feedback'] : (isset($prefs['realtime_feedback']) ? (bool)$prefs['realtime_feedback'] : null);
     $prefDark = isset($body['dark_mode']) ? (bool)$body['dark_mode'] : (isset($prefs['dark_mode']) ? (bool)$prefs['dark_mode'] : null);
 
-    // Ensure columns exist (safe for development). Add columns if missing.
-    $cols = $db->query("SHOW COLUMNS FROM users LIKE 'receive_reminders'")->fetch();
-    if (!$cols) {
-        $db->exec("ALTER TABLE users ADD COLUMN receive_reminders TINYINT(1) DEFAULT 1");
-    }
-    $cols = $db->query("SHOW COLUMNS FROM users LIKE 'realtime_feedback'")->fetch();
-    if (!$cols) {
-        $db->exec("ALTER TABLE users ADD COLUMN realtime_feedback TINYINT(1) DEFAULT 1");
-    }
-    $cols = $db->query("SHOW COLUMNS FROM users LIKE 'dark_mode'")->fetch();
-    if (!$cols) {
-        $db->exec("ALTER TABLE users ADD COLUMN dark_mode TINYINT(1) DEFAULT 0");
-    }
-
     $updates = [];
     $params = [];
     if ($prefReceive !== null) { $updates[] = 'receive_reminders = ?'; $params[] = $prefReceive ? 1 : 0; }
@@ -71,27 +71,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$uStmt = $db->prepare('SELECT id, first_name, last_name, email, role, condition_type, clinic_name, phone FROM users WHERE id = ? LIMIT 1');
+$uStmt = $db->prepare('SELECT id, first_name, last_name, email, role, condition_type, clinic_name, clinician_code, phone FROM users WHERE id = ? LIMIT 1');
 $uStmt->execute([$uid]);
 $user = $uStmt->fetch();
-
-// If preference columns exist, include them
-$prefCols = $db->query("SHOW COLUMNS FROM users LIKE 'receive_reminders'")->fetch();
-if ($prefCols) {
-    $pstmt = $db->prepare('SELECT receive_reminders, realtime_feedback, dark_mode FROM users WHERE id = ? LIMIT 1');
-    $pstmt->execute([$uid]);
-    $prefs = $pstmt->fetch();
-    $user['preferences'] = [
-        'receive_reminders' => (bool)($prefs['receive_reminders'] ?? 1),
-        'realtime_feedback' => (bool)($prefs['realtime_feedback'] ?? 1),
-        'dark_mode' => (bool)($prefs['dark_mode'] ?? 0),
-    ];
-}
 
 if (!$user) {
     echo json_encode(['error' => 'User not found']);
     exit;
 }
+
+$pstmt = $db->prepare('SELECT receive_reminders, realtime_feedback, dark_mode FROM users WHERE id = ? LIMIT 1');
+$pstmt->execute([$uid]);
+$prefs = $pstmt->fetch();
+$user['preferences'] = [
+    'receive_reminders' => (bool)($prefs['receive_reminders'] ?? 1),
+    'realtime_feedback' => (bool)($prefs['realtime_feedback'] ?? 1),
+    'dark_mode' => (bool)($prefs['dark_mode'] ?? 0),
+];
 
 $result = ['user' => $user];
 
@@ -122,10 +118,21 @@ if ($user['role'] === 'patient') {
     $st->execute([$uid]);
     $result['sessions_today'] = (int)$st->fetchColumn();
 
-    // avg adherence across clinician's patients (last 7 days)
-    $av = $db->prepare('SELECT AVG(ps.avg_quality) AS a FROM progress_snapshots ps JOIN clinician_patients cp ON cp.patient_id = ps.patient_id WHERE cp.clinician_id = ? AND ps.snap_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)');
+    // Estimate weekly adherence from the number of days with completed activity.
+    $av = $db->prepare('
+        SELECT COALESCE(COUNT(DISTINCT ps.snap_date) / 7 * 100, 0) AS adherence,
+               COALESCE(AVG(ps.avg_quality), 0) AS quality
+        FROM clinician_patients cp
+        LEFT JOIN progress_snapshots ps
+          ON ps.patient_id = cp.patient_id
+         AND ps.sessions_done > 0
+         AND ps.snap_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        WHERE cp.clinician_id = ?
+    ');
     $av->execute([$uid]);
-    $result['avg_adherence'] = round((float)($av->fetchColumn() ?? 0));
+    $averages = $av->fetch();
+    $result['avg_adherence'] = round((float)($averages['adherence'] ?? 0));
+    $result['avg_quality'] = round((float)($averages['quality'] ?? 0));
 }
 
 echo json_encode($result);

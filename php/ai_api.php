@@ -52,13 +52,18 @@ switch ($action) {
         $feedback_tag = trim($body['feedback_tag'] ?? 'general');
         $feedback_text = trim($body['feedback_text'] ?? 'No additional feedback.');
 
-        if (!$session_id || !$avg_quality || !$avg_form) {
+        if (
+            !$session_id ||
+            !isset($body['avg_quality'], $body['avg_form_score']) ||
+            !is_numeric($body['avg_quality']) ||
+            !is_numeric($body['avg_form_score'])
+        ) {
             echo json_encode(['error' => 'Missing training data']);
             exit;
         }
 
-        $stmt = $db->prepare('SELECT patient_id, exercise_id FROM sessions WHERE id = ? LIMIT 1');
-        $stmt->execute([$session_id]);
+        $stmt = $db->prepare('SELECT patient_id, exercise_id FROM sessions WHERE id = ? AND patient_id = ? LIMIT 1');
+        $stmt->execute([$session_id, $user_id]);
         $session = $stmt->fetch();
         if (!$session) {
             echo json_encode(['error' => 'Session not found']);

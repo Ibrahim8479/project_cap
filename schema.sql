@@ -13,11 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     role          ENUM('patient','clinician') NOT NULL DEFAULT 'patient',
     phone         VARCHAR(50),
+    receive_reminders TINYINT(1) NOT NULL DEFAULT 1,
+    realtime_feedback TINYINT(1) NOT NULL DEFAULT 1,
+    dark_mode     TINYINT(1) NOT NULL DEFAULT 0,
     condition_type VARCHAR(100),
     clinic_name   VARCHAR(200),
     specialization VARCHAR(100),
     clinician_code VARCHAR(20),
-    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_clinician_code (clinician_code)
 );
 
 -- Clinician–patient relationships
@@ -48,8 +52,8 @@ INSERT IGNORE INTO exercises (name, slug, description, target_reps, target_sets)
 
 -- Seed sample users
 INSERT IGNORE INTO users (first_name, last_name, email, password_hash, role, condition_type, clinic_name, specialization, clinician_code) VALUES
-  ('Dr', 'Jones', 'clinician@test.local', '$2b$12$y.sD68SfJuar8noo0zBV5.Axl1KNKpkODcrTRhcT57Y75BX0hdhNe', 'clinician', NULL, 'City Physio Center', 'Physiotherapy', 'DR-4892'),
-  ('Ava', 'Patient', 'patient@test.local', '$2b$12$y.sD68SfJuar8noo0zBV5.Axl1KNKpkODcrTRhcT57Y75BX0hdhNe', 'patient', 'Post-surgery (knee)', NULL, NULL, NULL);
+  ('Dr', 'Jones', 'clinician@test.local', '$2y$10$lGC1VOfaNg.gFxfC8VZa.OPz89rVcCN8eZyM4Yn7UNx02Gaw0Xs1O', 'clinician', NULL, 'City Physio Center', 'Physiotherapy', 'DR-4892'),
+  ('Ava', 'Patient', 'patient@test.local', '$2y$10$GwlJf1lCtSeoWpbf.QJjvewR9VoGiswvZyawAKTzOBgHThMBwzELi', 'patient', 'Post-surgery (knee)', NULL, NULL, NULL);
 
 INSERT IGNORE INTO clinician_patients (clinician_id, patient_id)
 SELECT c.id, p.id

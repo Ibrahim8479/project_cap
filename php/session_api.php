@@ -21,6 +21,9 @@ switch ($action) {
 
     // ── Start session ──────────────────────────────────────────
     case 'start':
+        if (($_SESSION['role'] ?? '') !== 'patient') {
+            jsonResponse(['error' => 'Only patients can start exercise sessions'], 403);
+        }
         $exercise_slug = $body['exercise'] ?? 'squat';
         $ex = $db->prepare('SELECT id FROM exercises WHERE slug = ? LIMIT 1');
         $ex->execute([$exercise_slug]);
@@ -47,7 +50,7 @@ switch ($action) {
         if (!$session_id) jsonResponse(['error' => 'Missing session_id'], 400);
 
         // Verify session belongs to this user
-        $check = $db->prepare('SELECT id FROM sessions WHERE id = ? AND patient_id = ? LIMIT 1');
+        $check = $db->prepare("SELECT id FROM sessions WHERE id = ? AND patient_id = ? AND status = 'in_progress' LIMIT 1");
         $check->execute([$session_id, $user_id]);
         if (!$check->fetch()) jsonResponse(['error' => 'Session not found'], 404);
 
@@ -66,6 +69,10 @@ switch ($action) {
         $status      = in_array($body['status'] ?? '', ['completed','partial']) ? $body['status'] : 'completed';
 
         if (!$session_id) jsonResponse(['error' => 'Missing session_id'], 400);
+
+        $check = $db->prepare("SELECT id FROM sessions WHERE id = ? AND patient_id = ? AND status = 'in_progress' LIMIT 1");
+        $check->execute([$session_id, $user_id]);
+        if (!$check->fetch()) jsonResponse(['error' => 'Active session not found'], 404);
 
         // Calculate averages from frames
         $avg = $db->prepare('
@@ -87,6 +94,7 @@ switch ($action) {
             round($avgs['af'] ?? 0, 1),
             $status, $session_id, $user_id
         ]);
+        if ($stmt->rowCount() !== 1) jsonResponse(['error' => 'Active session not found'], 404);
 
         // Upsert daily progress snapshot
         $today = date('Y-m-d');
@@ -118,6 +126,11 @@ switch ($action) {
     case 'get_messages':
         $other_id = (int)($body['with'] ?? 0);
         if (!$other_id) jsonResponse(['error' => 'Missing user id'], 400);
+        $relationship = ($_SESSION['role'] ?? '') === 'patient'
+            ? $db->prepare('SELECT 1 FROM clinician_patients WHERE patient_id = ? AND clinician_id = ?')
+            : $db->prepare('SELECT 1 FROM clinician_patients WHERE clinician_id = ? AND patient_id = ?');
+        $relationship->execute([$user_id, $other_id]);
+        if (!$relationship->fetch()) jsonResponse(['error' => 'Conversation partner not found'], 404);
         $stmt = $db->prepare('
             SELECT m.id, m.sender_id, m.body, m.sent_at,
                    u.first_name, u.last_name
@@ -139,6 +152,11 @@ switch ($action) {
         $to   = (int)($body['to']   ?? 0);
         $msg  = trim($body['body'] ?? '');
         if (!$to || !$msg) jsonResponse(['error' => 'Missing data'], 400);
+        $relationship = ($_SESSION['role'] ?? '') === 'patient'
+            ? $db->prepare('SELECT 1 FROM clinician_patients WHERE patient_id = ? AND clinician_id = ?')
+            : $db->prepare('SELECT 1 FROM clinician_patients WHERE clinician_id = ? AND patient_id = ?');
+        $relationship->execute([$user_id, $to]);
+        if (!$relationship->fetch()) jsonResponse(['error' => 'Conversation partner not found'], 404);
         $stmt = $db->prepare('INSERT INTO messages (sender_id, receiver_id, body) VALUES (?, ?, ?)');
         $stmt->execute([$user_id, $to, $msg]);
         jsonResponse(['ok' => true, 'message_id' => (int)$db->lastInsertId()]);

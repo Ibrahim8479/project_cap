@@ -91,6 +91,7 @@ function readErrorFromQuery() {
     invalid_credentials: 'Invalid email or password.',
     wrong_role: 'Please select the correct role.',
     email_taken: 'This email is already registered.',
+    invalid_clinician_code: 'That clinician code was not found. Check the code or leave it blank to connect later.',
   };
   const msg = messages[error] || decodeURIComponent(error.replace(/\+/g, ' ').replace(/_/g, ' '));
   if (loginErrEl && window.location.pathname.endsWith('login.html')) {

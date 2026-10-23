@@ -20,7 +20,7 @@
   top: -200px; right: -200px;
   width: 600px; height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, #7c3aed22 0%, transparent 70%);
+  background: radial-gradient(circle, #c43d5018 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -44,7 +44,7 @@
   font-weight: 900;
   line-height: 1.02;
   margin-bottom: 1.25rem;
-  color: #eef3ff;
+  color: var(--text-primary);
 }
 
 .hero-sub {
@@ -64,7 +64,7 @@
 
 .stat { text-align: left; }
 .stat-num { display: block; font-size: 1.4rem; font-weight: 800; color: var(--teal); }
-.stat-label { font-size: .75rem; color: #aebfdb; text-transform: uppercase; letter-spacing: .08em; }
+.stat-label { font-size: .75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .08em; }
 .stat-divider { width: 1px; height: 40px; background: var(--border); }
 
 /* Pose card */
@@ -76,7 +76,7 @@
   border: 1px solid var(--border-glow);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 0 40px #00e5ff18;
+  box-shadow: 0 0 40px #c43d5018;
 }
 
 .pose-header {
@@ -86,14 +86,14 @@
   padding: .75rem 1rem;
   background: var(--bg-panel);
   font-size: .8rem;
-  color: #c8d8f6;
+  color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
 }
 
 .pose-model {
-  background: #7c3aed33;
-  color: #e5e7ff;
-  border: 1px solid #7c3aed66;
+  background: #9d486018;
+  color: #7b354a;
+  border: 1px solid #9d486044;
   padding: .1rem .5rem;
   border-radius: 4px;
   font-size: .75rem;
@@ -101,7 +101,7 @@
 }
 
 .pose-body {
-  background: #060a12;
+  background: #3b252b;
   display: flex;
   justify-content: center;
   padding: 1rem;
@@ -184,7 +184,7 @@
 .feature-card:hover {
   border-color: var(--teal);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px #00e5ff11;
+  box-shadow: 0 8px 24px #c43d5018;
 }
 
 .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
@@ -192,9 +192,9 @@
 .feature-card p { font-size: .875rem; color: #d1e0fb; }
 
 /* CTA section */
-.cta-section { background: linear-gradient(135deg, #0a0d14, #0f172a); }
+.cta-section { background: linear-gradient(135deg, #fff0f1, #fbe1e5); }
 .cta-section h2 { font-size: 2rem; margin-bottom: .75rem; }
-.cta-section p  { color: #d1e1fb; margin-bottom: 2rem; }
+.cta-section p  { color: var(--text-secondary); margin-bottom: 2rem; }
 .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
 /* Responsive */
@@ -207,6 +207,20 @@
   .hero-cta, .hero-stats { justify-content: center; }
   .pose-card { width: 100%; max-width: 340px; }
   .nav-links { display: none; }
+  .nav-links.open {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem;
+    padding: 1rem 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 8px 16px rgba(75, 33, 42, .08);
+  }
   .nav-hamburger { display: block; }
   .step-arrow { display: none; }
   .steps { gap: 1rem; }

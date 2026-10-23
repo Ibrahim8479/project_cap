@@ -23,20 +23,23 @@ switch ($action) {
             SELECT u.id, u.first_name, u.last_name, u.condition_type, u.created_at,
                    COALESCE(ps.avg_quality, 0) AS avg_quality,
                    COALESCE(ps.sessions_done, 0) AS sessions_done,
+                   COALESCE(ps.active_days, 0) AS active_days,
                    (SELECT COUNT(*) FROM sessions s WHERE s.patient_id = u.id) AS total_sessions,
-                   (SELECT MAX(started_at) FROM sessions s WHERE s.patient_id = u.id) AS last_session
+                   (SELECT MAX(started_at) FROM sessions s WHERE s.patient_id = u.id) AS last_session,
+                   (SELECT COUNT(*) FROM sessions s WHERE s.patient_id = u.id AND s.status = ?) AS active_sessions
             FROM clinician_patients cp
             JOIN users u ON u.id = cp.patient_id
             LEFT JOIN (
-                SELECT patient_id, AVG(avg_quality) AS avg_quality, SUM(sessions_done) AS sessions_done
+                SELECT patient_id, AVG(avg_quality) AS avg_quality, SUM(sessions_done) AS sessions_done,
+                       SUM(CASE WHEN sessions_done > 0 THEN 1 ELSE 0 END) AS active_days
                 FROM progress_snapshots
-                WHERE snap_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                WHERE snap_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
                 GROUP BY patient_id
             ) ps ON ps.patient_id = u.id
             WHERE cp.clinician_id = ?
             ORDER BY u.first_name
         ');
-        $stmt->execute([$clinician_id]);
+        $stmt->execute(['in_progress', $clinician_id]);
         jsonResponse(['patients' => $stmt->fetchAll()]);
 
     case 'patient_detail':
@@ -69,15 +72,25 @@ switch ($action) {
             SELECT snap_date, avg_quality, total_reps, sessions_done
             FROM progress_snapshots
             WHERE patient_id = ?
+              AND snap_date >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
             ORDER BY snap_date ASC
-            LIMIT 14
         ');
         $prStmt->execute([$patient_id]);
+
+        $adherenceStmt = $db->prepare('
+            SELECT COUNT(*)
+            FROM progress_snapshots
+            WHERE patient_id = ?
+              AND snap_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+              AND sessions_done > 0
+        ');
+        $adherenceStmt->execute([$patient_id]);
 
         jsonResponse([
             'patient'  => $patient,
             'sessions' => $sStmt->fetchAll(),
             'progress' => $prStmt->fetchAll(),
+            'adherence_days' => (int)$adherenceStmt->fetchColumn(),
         ]);
 
     case 'assign_patient':

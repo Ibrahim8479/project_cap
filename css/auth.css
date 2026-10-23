@@ -11,7 +11,7 @@
 /* Left panel */
 .auth-left {
   flex: 0 0 420px;
-  background: linear-gradient(160deg, #0f172a 0%, #1a0a2e 100%);
+  background: linear-gradient(160deg, #fff0f1 0%, #fbe1e5 100%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
   bottom: -100px; right: -100px;
   width: 350px; height: 350px;
   border-radius: 50%;
-  background: radial-gradient(circle, #7c3aed18 0%, transparent 70%);
+  background: radial-gradient(circle, #c43d5018 0%, transparent 70%);
 }
 
 .auth-brand {
@@ -41,7 +41,7 @@
 .auth-left-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
 .auth-left-body h2 { font-size: 1.8rem; margin-bottom: .5rem; }
-.auth-left-body p  { color: #cfd9f4; margin-bottom: 2rem; }
+.auth-left-body p  { color: var(--text-secondary); margin-bottom: 2rem; }
 
 .auth-visual {
   display: flex;
@@ -55,7 +55,7 @@
   display: flex;
   align-items: center;
   gap: .75rem;
-  color: #d4dff6;
+  color: var(--text-secondary);
   font-size: .9rem;
 }
 .auth-bullet span { color: var(--success); font-weight: 700; }
@@ -95,8 +95,8 @@
 }
 
 .role-btn.active {
-  background: linear-gradient(135deg, var(--teal), var(--violet));
-  color: #000;
+  background: var(--teal);
+  color: #fff;
 }
 
 .auth-title { font-size: 1.8rem; font-weight: 800; margin-bottom: .25rem; }
@@ -121,7 +121,7 @@
   align-items: center;
   gap: .5rem;
   font-size: .875rem;
-  color: #ffffff;
+  color: var(--text-primary);
   cursor: pointer;
 }
 

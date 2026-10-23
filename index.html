@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PhysioTrack - Lower-Body Telerehabilitation</title>
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/landing.css" />
+  <title>AI Telerehabilitation - Lower-Body Monitoring</title>
+  <link rel="stylesheet" href="css/main.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/landing.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/app-polish.css?v=11" />
 </head>
 <body class="landing-page">
 
   <!-- NAV -->
   <nav class="nav">
     <div class="nav-brand">
-      <img src="images/logo.svg" class="nav-logo" alt="logo">
-      <span class="brand-text">PhysioTrack</span>
+      <img src="images/logo.svg?v=2" class="nav-logo" alt="logo">
+      <span class="brand-text">AI Telerehabilitation</span>
     </div>
     <ul class="nav-links">
       <li><a href="#how-it-works">How It Works</a></li>
@@ -27,30 +28,30 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-content">
-      <span class="hero-eyebrow">PhysioTracklitation Monitoring</span>
+      <span class="hero-eyebrow">Lower-body telerehabilitation</span>
       <h1 class="hero-headline">
-        Recover Smarter.<br />Move <span class="accent">Better.</span>
+        Rehab at home.<br />Move with <span class="accent">confidence.</span>
       </h1>
       <p class="hero-sub">
-        Real-time motion and form tracking for post-surgery and sports injury rehab from any smartphone or webcam, with clinician supervision.
+        Camera-assisted lower-body rehabilitation with movement tracking, exercise recognition, repetition counting, and progress review for patients and physiotherapists.
       </p>
       <div class="hero-cta">
-        <a href="register.html" class="btn btn-primary btn-lg">Start Recovery</a>
+        <a href="register.html" class="btn btn-primary btn-lg">Create Patient Account</a>
         <a href="login.html?role=clinician" class="btn btn-outline btn-lg">Clinician Login</a>
       </div>
       <div class="hero-stats">
-        <div class="stat"><span class="stat-num">3</span><span class="stat-label">Exercises Monitored</span></div>
+        <div class="stat"><span class="stat-num">3</span><span class="stat-label">Lower-body exercises</span></div>
         <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-num">Real-time</span><span class="stat-label">Live Feedback</span></div>
+        <div class="stat"><span class="stat-num">Camera</span><span class="stat-label">Pose tracking</span></div>
         <div class="stat-divider"></div>
-        <div class="stat"><span class="stat-num">Technique</span><span class="stat-label">Scoring</span></div>
+        <div class="stat"><span class="stat-num">Clinician</span><span class="stat-label">Progress review</span></div>
       </div>
     </div>
     <div class="hero-visual">
       <div class="pose-card">
         <div class="pose-header">
-          <span class="live-dot"></span> Live Session
-          <span class="pose-model">Pose Tracker</span>
+          <span>Movement preview</span>
+          <span class="pose-model">Lower-body tracking</span>
         </div>
         <div class="pose-body">
           <svg class="skeleton-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
@@ -82,13 +83,12 @@
             <circle cx="70" cy="230" r="4" fill="#00e5ff"/>
             <circle cx="130" cy="230" r="4" fill="#00e5ff"/>
             <!-- Angle labels -->
-            <text x="20" y="178" fill="#7c3aed" font-size="9" font-family="monospace">94°</text>
-            <text x="148" y="178" fill="#00e5ff" font-size="9" font-family="monospace">78°</text>
+            <text x="20" y="178" fill="#7c3aed" font-size="9" font-family="monospace">KNEE</text>
+            <text x="148" y="178" fill="#00e5ff" font-size="9" font-family="monospace">HIP</text>
           </svg>
         </div>
         <div class="pose-footer">
-          <span class="form-score">Form Score: <strong>87% Correct</strong></span>
-          <div class="score-bar"><div class="score-fill" style="width:87%"></div></div>
+          <span class="form-score"><strong>Pose landmark guide</strong> · lower-body tracking</span>
         </div>
       </div>
     </div>
@@ -102,8 +102,8 @@
         <div class="step">
           <div class="step-num">01</div>
           <div class="step-icon">📱</div>
-          <h3>Open on Any Device</h3>
-          <p>Use your smartphone or webcam, with no special hardware required.</p>
+          <h3>Use a Supported Device</h3>
+          <p>Use a supported browser and camera in a clear, well-lit space.</p>
         </div>
         <div class="step-arrow">→</div>
         <div class="step">
@@ -116,15 +116,15 @@
         <div class="step">
           <div class="step-num">03</div>
           <div class="step-icon">🧠</div>
-          <h3>Motion Scoring</h3>
-          <p>Movement quality is evaluated frame by frame.</p>
+          <h3>Movement Analysis</h3>
+          <p>Exercise recognition, rep counting, movement-quality estimates, and real-time cues support exercise review.</p>
         </div>
         <div class="step-arrow">→</div>
         <div class="step">
           <div class="step-num">04</div>
           <div class="step-icon">📊</div>
-          <h3>Clinician Reviews</h3>
-          <p>Your physiotherapist monitors progress on the remote dashboard.</p>
+          <h3>Session &amp; Care Review</h3>
+          <p>Session results are stored for physiotherapist review of activity and progress.</p>
         </div>
       </div>
     </div>
@@ -133,22 +133,22 @@
   <!-- FEATURES -->
   <section class="section section-dark" id="features">
     <div class="container">
-      <h2 class="section-title">Everything You Need to Recover</h2>
+      <h2 class="section-title">Tools for lower-body rehabilitation</h2>
       <div class="features-grid">
         <div class="feature-card">
           <div class="feature-icon">🎯</div>
-          <h3>Rep Counting</h3>
-          <p>Automatic repetition counting so you can focus on form, not numbers.</p>
+          <h3>Exercise Recognition</h3>
+          <p>Pose-landmark analysis helps identify supported lower-body exercises.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">⚡</div>
           <h3>Real-Time Feedback</h3>
-          <p>"Lower your hips further" and receive quick corrective prompts while you move.</p>
+          <p>Receive camera-based movement cues during a session and review observations with your physiotherapist.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">📈</div>
-          <h3>Progress Analytics</h3>
-          <p>Weekly charts and movement quality scores to track your recovery.</p>
+          <h3>Track Your Progress</h3>
+          <p>Review recorded activity and movement-quality estimates over time.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">👨‍⚕️</div>
@@ -157,15 +157,21 @@
         </div>
         <div class="feature-card">
           <div class="feature-icon">🏋️</div>
-          <h3>3 Core Exercises</h3>
-          <p>Squats, lunges, and knee extensions are the foundation of lower-body rehab.</p>
+          <h3>Three Supported Exercises</h3>
+          <p>Work with assigned lower-body exercises selected for your rehabilitation program.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">🔒</div>
-          <h3>Secure & Private</h3>
-          <p>All session data is encrypted and only accessible by you and your clinician.</p>
+          <h3>Connected Care</h3>
+          <p>Patient and physiotherapist accounts provide role-specific access to care workflows.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="section section-dark">
+    <div class="container text-center">
+      <p class="text-muted"><strong>Clinical note:</strong> Movement estimates are for monitoring and discussion, not diagnosis or a replacement for a physiotherapist. Follow your clinician’s exercise plan and stop if an exercise causes pain or discomfort.</p>
     </div>
   </section>
 
@@ -173,7 +179,7 @@
   <section class="section cta-section">
     <div class="container text-center">
       <h2>Ready to start your recovery?</h2>
-      <p>Join as a patient or register your clinic today.</p>
+      <p>Register as a patient or physiotherapist to access your telerehabilitation workspace.</p>
       <div class="cta-buttons">
         <a href="register.html" class="btn btn-primary btn-lg">Register as Patient</a>
         <a href="register.html?role=clinician" class="btn btn-outline btn-lg">Register as Clinician</a>
@@ -183,11 +189,11 @@
 
   <footer class="footer">
     <div class="footer-brand">
-      <span class="nav-logo">⟁</span> PhysioTrack
+      <img src="images/logo.svg?v=2" class="nav-logo" alt=""> AI Telerehabilitation
     </div>
-    <p class="footer-note">Lower-Body PhysioTracklitation Monitoring System · Capstone Project</p>
+    <p class="footer-note">Lower-body remote patient monitoring and physiotherapist care</p>
   </footer>
 
-  <script src="js/main.js"></script>
+  <script src="js/main.js?v=5"></script>
 </body>
 </html>

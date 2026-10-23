@@ -3,22 +3,32 @@
 // ─── State ───────────────────────────────────────────────
 let running  = false;
 let repCount = 0;
+let totalRepCount = 0;
 let setNum   = 1;
+let completedSets = 0;
 let timerSec = 0;
 let timerInterval = null;
-let sessionInterval = null;
-const REP_TARGET = 15;
+const EXERCISE_GOALS = {
+  squat: { reps: 15, sets: 3 },
+  lunge: { reps: 12, sets: 3 },
+  'knee-ext': { reps: 20, sets: 2 }
+};
+let repTarget = EXERCISE_GOALS.squat.reps;
+let setTarget = EXERCISE_GOALS.squat.sets;
 
 // ─── DOM refs ────────────────────────────────────────────
 const startBtn    = document.getElementById('startBtn');
 const pauseBtn    = document.getElementById('pauseBtn');
 const endBtn      = document.getElementById('endBtn');
 const repCountEl  = document.getElementById('repCount');
+const repTargetEl = document.getElementById('repTarget');
 const setNumEl    = document.getElementById('setNum');
+const setTargetEl = document.getElementById('setTarget');
 const repBarEl    = document.getElementById('repBar');
 const timerEl     = document.getElementById('sessionTimer');
 const kneeAngle   = document.getElementById('kneeAngle');
 const hipAngle    = document.getElementById('hipAngle');
+const jointLabels = document.querySelectorAll('.joint-label');
 const formScoreLbl= document.getElementById('formScoreLabel');
 const formScoreBar= document.getElementById('formScoreBar');
 const qualityArc  = document.getElementById('qualityArc');
@@ -26,23 +36,16 @@ const qualityText = document.getElementById('qualityText');
 const qualityLabel= document.getElementById('qualityLabel');
 const feedbackBody= document.getElementById('feedbackBody');
 const rhythmBars  = document.getElementById('rhythmBars');
+const rhythmEmpty = document.getElementById('rhythmEmpty');
 
-
-// ─── Rhythm bars init ────────────────────────────────────
-if (rhythmBars) {
-  for (let i = 0; i < 60; i++) {
-    const bar = document.createElement('div');
-    bar.className = 'rhythm-bar';
-    bar.style.height = (Math.random() * 40 + 4) + 'px';
-    rhythmBars.appendChild(bar);
-  }
-}
 
 // ─── Camera ──────────────────────────────────────────────
 const enableCamBtn   = document.getElementById('enableCam');
 const camPlaceholder = document.getElementById('camPlaceholder');
 const videoFeed      = document.getElementById('videoFeed');
 const camBtn         = document.getElementById('camBtn');
+const sessionStatus  = document.getElementById('sessionStatus');
+const trackingStatus = document.getElementById('trackingStatus');
 const poseCanvas     = document.getElementById('poseCanvas');
 const canvasCtx      = poseCanvas?.getContext('2d');
 let mpPose = null;
@@ -52,11 +55,14 @@ let activeSessionId = null;
 let selectedExercise = 'squat';
 let sessionStartTime = 0;
 let lastSaveTime = 0;
-let repState = 'up';
-let lastRepTime = 0;
 let lastInferenceTime = 0;
 let inferenceCooldown = 5000;
-let currentExercisePrediction = null;
+let aiWarningShown = false;
+let repState = 'up';
+let lastRepTime = 0;
+let pendingFrameSaves = new Set();
+let frameSaveFailures = 0;
+let frameSaveWarningShown = false;
 
 function setPageUserHeader(user) {
   if (!user) return;
@@ -71,7 +77,17 @@ async function loadCurrentUser() {
     const res = await fetch('php/me.php');
     if (res.status === 401) { window.location.href = 'login.html'; return; }
     const data = await res.json();
-    if (data && data.user) setPageUserHeader(data.user);
+    if (data && data.user) {
+      if (data.user.role !== 'patient') {
+        window.location.replace('clinician.html');
+        return;
+      }
+      setPageUserHeader(data.user);
+      const prefs = data.user.preferences;
+      if (prefs) {
+        localStorage.setItem('pref.realtimeFeedback', prefs.realtime_feedback ? '1' : '0');
+      }
+    }
   } catch (err) {
     console.error('Failed to load current user', err);
   }
@@ -143,7 +159,6 @@ function analyzePoseLandmarks(landmarks) {
     quality,
     form,
     feedback: feedback.join(' '),
-    poseLandmarks: landmarks,
     featureVector: {
       left_knee: leftKnee,
       right_knee: rightKnee,
@@ -165,7 +180,18 @@ function updatePoseDisplay(metrics) {
     formScoreLbl.style.color = metrics.form >= 80 ? 'var(--success)' : metrics.form >= 65 ? 'var(--warning)' : 'var(--danger)';
   }
   if (formScoreBar) formScoreBar.style.width = `${metrics.form}%`;
-  if (metrics.feedback) addFeedback(metrics.feedback, metrics.quality >= 75 ? 'ok' : 'warn');
+  if (metrics.feedback) addFeedback(metrics.feedback, metrics.quality >= 75 ? 'ok' : 'warn', true);
+}
+
+function updateMovementRhythm(kneeAngleValue) {
+  if (!rhythmBars || !Number.isFinite(kneeAngleValue) || kneeAngleValue <= 0) return;
+  const angle = Math.max(0, Math.min(180, kneeAngleValue));
+  const bar = document.createElement('div');
+  bar.className = 'rhythm-bar';
+  bar.style.height = `${Math.max(4, Math.round((angle / 180) * 48))}px`;
+  rhythmBars.appendChild(bar);
+  while (rhythmBars.children.length > 40) rhythmBars.firstElementChild.remove();
+  if (rhythmEmpty) rhythmEmpty.hidden = true;
 }
 
 function countRepsFromPose(metrics) {
@@ -185,44 +211,42 @@ function onPoseResults(results) {
   updateCanvasSize();
   canvasCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
   if (results.poseLandmarks) {
-    drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#00e5ff', lineWidth: 2 });
-    drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#ffffff', lineWidth: 1 });
+    jointLabels.forEach(label => { label.hidden = false; });
+    window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#c43d50', lineWidth: 2 });
+    window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#ffffff', lineWidth: 1 });
 
     const metrics = analyzePoseLandmarks(results.poseLandmarks);
     updatePoseDisplay(metrics);
-    countRepsFromPose(metrics);
+    updateMovementRhythm(metrics.knee);
+    if (running) countRepsFromPose(metrics);
 
-    if (activeSessionId) {
+    if (running && activeSessionId) {
       const now = Date.now();
+      if (now - lastInferenceTime > inferenceCooldown) {
+        lastInferenceTime = now;
+        classifyExercise(metrics.featureVector);
+      }
       if (now - lastSaveTime > 1000) {
         const elapsed = (now - sessionStartTime) / 1000;
         saveSessionFrame(elapsed, metrics.knee, metrics.hip, metrics.quality, metrics.form, metrics.feedback);
         lastSaveTime = now;
       }
-      if (now - lastInferenceTime > inferenceCooldown) {
-        lastInferenceTime = now;
-        classifyExercise(metrics.featureVector);
-      }
     }
+  } else {
+    jointLabels.forEach(label => { label.hidden = true; });
   }
 }
 
 async function initPosePipeline() {
   if (mpPose) return;
   // If MediaPipe isn't loaded, try to load scripts dynamically and wait
-  if (typeof Pose === 'undefined' || typeof Camera === 'undefined') {
+  if (typeof window.Pose === 'undefined' || typeof window.Camera === 'undefined') {
     addFeedback('MediaPipe Pose is not loaded yet. Loading...', 'info');
-    try {
-      await loadMediaPipeScripts();
-      addFeedback('MediaPipe loaded.', 'ok');
-    } catch (e) {
-      console.error('Failed to load MediaPipe scripts', e);
-      addFeedback('Failed to load MediaPipe Pose. Check network or CDN.', 'warn');
-      return;
-    }
+    await loadMediaPipeScripts();
+    addFeedback('MediaPipe loaded.', 'ok');
   }
 
-  mpPose = new Pose({ locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}` });
+  mpPose = new window.Pose({ locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}` });
   mpPose.setOptions({
     modelComplexity: 1,
     smoothLandmarks: true,
@@ -232,7 +256,7 @@ async function initPosePipeline() {
   });
   mpPose.onResults(onPoseResults);
 
-  mpCamera = new Camera(videoFeed, {
+  mpCamera = new window.Camera(videoFeed, {
     onFrame: async () => {
       await mpPose.send({ image: videoFeed });
     },
@@ -242,6 +266,9 @@ async function initPosePipeline() {
 }
 
 async function enableCamera() {
+  if (!videoFeed || !camPlaceholder || !camBtn) return;
+  if (enableCamBtn) enableCamBtn.disabled = true;
+  camBtn.disabled = true;
   try {
     await initPosePipeline();
     if (mpCamera) await mpCamera.start();
@@ -249,30 +276,68 @@ async function enableCamera() {
     videoFeed.style.display = 'block';
     camBtn.textContent = '📷 Camera On';
     cameraOn = true;
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Camera ready';
+      sessionStatus.className = 'badge badge-success';
+    }
+    if (trackingStatus) {
+      trackingStatus.textContent = 'Camera connected';
+      trackingStatus.className = 'badge badge-success';
+    }
     if (videoFeed.readyState >= 2) updateCanvasSize();
     videoFeed.addEventListener('loadedmetadata', updateCanvasSize, { once: true });
   } catch (err) {
     console.error(err);
-    addFeedback('Could not access camera. Check browser permissions.', 'warn');
+    const message = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
+      ? 'Camera permission was denied. Allow camera access in your browser settings, then try again.'
+      : err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError'
+        ? 'No camera was found. Connect a camera and try again.'
+        : `Camera setup failed: ${err.message || 'Check your camera and network connection.'}`;
+    addFeedback(message, 'warn');
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Camera unavailable';
+      sessionStatus.className = 'badge badge-danger';
+    }
+  } finally {
+    if (enableCamBtn) enableCamBtn.disabled = cameraOn;
+    camBtn.disabled = false;
   }
 }
 
 async function disableCamera() {
-  if (mpCamera) {
-    await mpCamera.stop();
+  try {
+    if (mpCamera) await mpCamera.stop();
+  } catch (err) {
+    console.error('Unable to stop camera tracking cleanly', err);
+    addFeedback('Camera tracking did not stop cleanly. The browser camera stream was closed where possible.', 'warn');
+  } finally {
+    if (videoFeed?.srcObject) {
+      videoFeed.srcObject.getTracks().forEach(track => track.stop());
+    }
+    if (videoFeed) videoFeed.srcObject = null;
+    if (camPlaceholder) camPlaceholder.style.display = 'flex';
+    if (videoFeed) videoFeed.style.display = 'none';
+    jointLabels.forEach(label => { label.hidden = true; });
+    if (camBtn) camBtn.textContent = '📷 Camera Off';
+    cameraOn = false;
+    if (enableCamBtn) enableCamBtn.disabled = false;
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Camera needed';
+      sessionStatus.className = 'badge badge-warning';
+    }
+    if (trackingStatus) {
+      trackingStatus.textContent = 'Camera not connected';
+      trackingStatus.className = 'badge badge-warning';
+    }
   }
-  if (videoFeed.srcObject) {
-    videoFeed.srcObject.getTracks().forEach(t => t.stop());
-  }
-  videoFeed.srcObject = null;
-  camPlaceholder.style.display = 'flex';
-  videoFeed.style.display = 'none';
-  camBtn.textContent = '📷 Camera Off';
-  cameraOn = false;
 }
 
 enableCamBtn?.addEventListener('click', enableCamera);
 camBtn?.addEventListener('click', () => {
+  if (running) {
+    addFeedback('Pause the session before turning off the camera.', 'warn');
+    return;
+  }
   if (cameraOn) {
     disableCamera();
   } else {
@@ -289,9 +354,18 @@ function updateSessionSubtitle() {
 
 document.querySelectorAll('.ex-select-item').forEach(item => {
   item.addEventListener('click', () => {
+    if (activeSessionId) {
+      addFeedback('End the current session before changing exercises.', 'warn');
+      return;
+    }
     document.querySelectorAll('.ex-select-item').forEach(i => i.classList.remove('active'));
     item.classList.add('active');
     selectedExercise = item.dataset.ex || 'squat';
+    const goal = EXERCISE_GOALS[selectedExercise] || EXERCISE_GOALS.squat;
+    repTarget = goal.reps;
+    setTarget = goal.sets;
+    if (repTargetEl) repTargetEl.textContent = repTarget;
+    if (setTargetEl) setTargetEl.textContent = setTarget;
     updateSessionSubtitle();
     resetReps();
   });
@@ -300,11 +374,6 @@ document.querySelectorAll('.ex-select-item').forEach(item => {
 document.addEventListener('DOMContentLoaded', () => {
   loadCurrentUser();
   updateSessionSubtitle();
-});
-
-// Prefetch MediaPipe scripts in background to speed up camera start
-document.addEventListener('DOMContentLoaded', () => {
-  loadMediaPipeScripts().catch(() => {/* silent */});
 });
 
 // ─── Timer ───────────────────────────────────────────────
@@ -316,68 +385,122 @@ function updateTimer() {
 }
 
 // ─── Start / pause / end ─────────────────────────────────
+// A saved session must come from an active camera and pose-tracking pipeline.
 startBtn?.addEventListener('click', async () => {
-  running = true;
+  if (!cameraOn) {
+    addFeedback('Enable your camera before starting a monitored session.', 'warn');
+    enableCamBtn?.focus();
+    return;
+  }
   startBtn.disabled = true;
+  const sessionId = await startSession();
+  if (!sessionId) {
+    startBtn.disabled = false;
+    return;
+  }
+  running = true;
   pauseBtn.disabled = false;
-  await startSession();
   sessionStartTime = Date.now();
   lastSaveTime = 0;
   repState = 'up';
   lastRepTime = 0;
+  totalRepCount = 0;
+  completedSets = 0;
+  pendingFrameSaves.clear();
+  frameSaveFailures = 0;
+  frameSaveWarningShown = false;
+  resetReps();
   timerInterval = setInterval(updateTimer, 1000);
-  if (!cameraOn) {
-    sessionInterval = setInterval(simulateFrame, 800);
+  if (sessionStatus) {
+    sessionStatus.textContent = 'Session in progress';
+    sessionStatus.className = 'badge badge-success';
   }
-  if (cameraOn && mpCamera) {
-    await mpCamera.start();
-  }
+  if (trackingStatus) trackingStatus.textContent = 'Tracking lower-body movement';
   addFeedback('Session started. Begin your exercise!', 'info');
 });
 
 pauseBtn?.addEventListener('click', async () => {
+  if (!running && !cameraOn) {
+    addFeedback('Reconnect your camera before resuming this session.', 'warn');
+    return;
+  }
   running = !running;
   pauseBtn.textContent = running ? '⏸ Pause' : '▶ Resume';
   if (running) {
     timerInterval = setInterval(updateTimer, 1000);
-    if (!cameraOn) sessionInterval = setInterval(simulateFrame, 800);
-    if (cameraOn && mpCamera) await mpCamera.start();
+    if (cameraOn && mpCamera) {
+      try {
+        await mpCamera.start();
+      } catch (err) {
+        running = false;
+        clearInterval(timerInterval);
+        pauseBtn.textContent = '▶ Resume';
+        addFeedback('Could not resume camera tracking. Check camera permissions.', 'warn');
+        return;
+      }
+    }
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Session in progress';
+      sessionStatus.className = 'badge badge-success';
+    }
     addFeedback('Session resumed.', 'info');
   } else {
     clearInterval(timerInterval);
-    clearInterval(sessionInterval);
-    if (cameraOn && mpCamera) await mpCamera.stop();
+    if (cameraOn && mpCamera) {
+      try {
+        await mpCamera.stop();
+      } catch (err) {
+        console.error('Unable to pause camera tracking', err);
+        addFeedback('The camera could not be paused cleanly. You can try resuming or turn the camera off.', 'warn');
+      }
+    }
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Session paused';
+      sessionStatus.className = 'badge badge-warning';
+    }
     addFeedback('Session paused.', 'warn');
   }
 });
 
 endBtn?.addEventListener('click', async () => {
+  if (!activeSessionId) {
+    addFeedback('Start a session before ending it.', 'warn');
+    return;
+  }
   if (!confirm('End this session and save results?')) return;
+  running = false;
   clearInterval(timerInterval);
-  clearInterval(sessionInterval);
+  pauseBtn.textContent = '▶ Resume';
+  pauseBtn.disabled = true;
+  endBtn.disabled = true;
   await endSession();
+  if (activeSessionId) {
+    pauseBtn.disabled = false;
+    endBtn.disabled = false;
+  }
 });
 
 // ─── Rep counting ────────────────────────────────────────
-document.getElementById('manualRep')?.addEventListener('click', addRep);
-document.getElementById('resetRep')?.addEventListener('click', resetReps);
-
 function addRep() {
+  if (completedSets >= setTarget) return;
   repCount++;
+  totalRepCount++;
   if (repCountEl) repCountEl.textContent = repCount;
-  const pct = Math.min((repCount / REP_TARGET) * 100, 100);
+  const pct = Math.min((repCount / repTarget) * 100, 100);
   if (repBarEl) repBarEl.style.width = pct + '%';
 
-  if (repCount >= REP_TARGET) {
-    setNum++;
-    if (setNum > 3) {
+  if (repCount >= repTarget) {
+    completedSets++;
+    if (completedSets >= setTarget) {
       addFeedback('All sets complete! Great work!', 'ok');
-      setNum = 3;
+      setNum = setTarget;
+      if (setNumEl) setNumEl.textContent = setNum;
     } else {
-      addFeedback(`Set ${setNum - 1} complete! Starting set ${setNum}…`, 'ok');
+      setNum = completedSets + 1;
+      addFeedback(`Set ${completedSets} complete! Starting set ${setNum}…`, 'ok');
+      resetReps(false);
+      if (setNumEl) setNumEl.textContent = setNum;
     }
-    resetReps(false);
-    if (setNumEl) setNumEl.textContent = setNum;
   }
 
   if (repCount > 0 && repCount % 5 === 0) {
@@ -386,108 +509,17 @@ function addRep() {
 }
 
 function resetReps(resetSet = true) {
-  repCount = 0;
-  if (resetSet) setNum = 1;
+  if (resetSet) {
+    repCount = 0;
+    totalRepCount = 0;
+    completedSets = 0;
+    setNum = 1;
+  } else {
+    repCount = 0;
+  }
   if (repCountEl) repCountEl.textContent = '0';
   if (repBarEl)   repBarEl.style.width = '0%';
-  if (setNumEl && resetSet) setNumEl.textContent = '1';
-}
-
-// ─── Simulated motion tracking inference (until MediaPipe is connected) ─
-const feedbackMessages = [
-  { msg: 'Good depth! Keep your back straight.', type: 'ok' },
-  { msg: 'Lower your hips further.', type: 'warn' },
-  { msg: 'Keep knees aligned with toes.', type: 'warn' },
-  { msg: 'Excellent form, maintain this!', type: 'ok' },
-  { msg: 'Straighten your posture.', type: 'warn' },
-  { msg: 'Great tempo, smooth and controlled.', type: 'ok' },
-];
-
-let frameCount = 0;
-
-function simulateFrame() {
-  if (!running) return;
-  frameCount++;
-
-  // Simulate joint angles
-  const knee = Math.round(80 + Math.random() * 30);
-  const hip  = Math.round(65 + Math.random() * 25);
-  if (kneeAngle) kneeAngle.textContent = knee + '°';
-  if (hipAngle)  hipAngle.textContent  = hip + '°';
-
-  // Simulate quality score
-  const quality = Math.round(70 + Math.random() * 20);
-  setQualityScore(quality);
-
-  // Simulate form score bar
-  const formScore = Math.round(65 + Math.random() * 25);
-  if (formScoreLbl) {
-    formScoreLbl.textContent = formScore + '%';
-    formScoreLbl.style.color = formScore >= 80 ? 'var(--success)' : formScore >= 65 ? 'var(--warning)' : 'var(--danger)';
-  }
-  if (formScoreBar) formScoreBar.style.width = formScore + '%';
-
-  // Rhythm bars animation
-  if (rhythmBars) {
-    const bars = rhythmBars.querySelectorAll('.rhythm-bar');
-    bars.forEach((bar, i) => {
-      bar.style.height = (Math.random() * 44 + 4) + 'px';
-      bar.classList.toggle('active', i === frameCount % bars.length);
-    });
-  }
-
-  if (activeSessionId) {
-    saveSessionFrame(frameCount * 0.8, knee, hip, quality, formScore, feedbackMessages[Math.floor(Math.random() * feedbackMessages.length)].msg);
-  }
-
-  // Every ~4 frames, add rep + feedback when no camera is available
-  if (frameCount % 4 === 0) {
-    addRep();
-    const fb = feedbackMessages[Math.floor(Math.random() * feedbackMessages.length)];
-    addFeedback(fb.msg, fb.type);
-  }
-}
-
-async function requestAiAdvice() {
-  try {
-    const res = await fetch('php/ai_api.php?action=feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        exercise: selectedExercise,
-        quality: parseFloat(qualityText?.textContent || '0'),
-        form: parseFloat(formScoreLbl?.textContent.replace('%', '') || '0'),
-        reps: repCount
-      })
-    });
-    const data = await res.json();
-    if (data.advice) {
-      addFeedback(data.advice, 'info');
-    }
-  } catch (err) {
-    console.error('AI advice request failed', err);
-  }
-}
-
-async function classifyExercise(featureVector) {
-  try {
-    const res = await fetch('php/infer_model.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feature_vector: featureVector })
-    });
-    const data = await res.json();
-    if (data.exercise) {
-      currentExercisePrediction = data.exercise;
-      if (data.exercise !== selectedExercise) {
-        addFeedback(`Model predicts ${data.exercise}. Keep the ${selectedExercise} position for best results.`, 'warn');
-      } else {
-        addFeedback(`Model confirms ${selectedExercise}. Keep going!`, 'ok');
-      }
-    }
-  } catch (err) {
-    console.error('Exercise classification failed', err);
-  }
+  if (setNumEl) setNumEl.textContent = setNum;
 }
 
 async function startSession() {
@@ -499,11 +531,11 @@ async function startSession() {
       body: JSON.stringify({ exercise: selectedExercise })
     });
     const data = await res.json();
-    if (data.session_id) {
+    if (res.ok && data.session_id) {
       activeSessionId = data.session_id;
       return activeSessionId;
     }
-    addFeedback('Unable to create session.', 'warn');
+    addFeedback(data.error || 'Unable to create session.', 'warn');
   } catch (err) {
     console.error('Start session failed', err);
     addFeedback('Unable to start session.', 'warn');
@@ -511,10 +543,56 @@ async function startSession() {
   return null;
 }
 
+async function requestAiAdvice() {
+  try {
+    const res = await fetch('php/ai_api.php?action=feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        exercise: selectedExercise,
+        quality: Number.parseFloat(qualityText?.textContent || '0'),
+        form: Number.parseFloat(formScoreLbl?.textContent.replace('%', '') || '0'),
+        reps: repCount
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Feedback is unavailable.');
+    if (data.advice) addFeedback(data.advice, 'info', true);
+  } catch (err) {
+    console.error('AI feedback request failed', err);
+    if (!aiWarningShown) {
+      aiWarningShown = true;
+      addFeedback('Live AI feedback is temporarily unavailable. Camera tracking will continue.', 'warn');
+    }
+  }
+}
+
+async function classifyExercise(featureVector) {
+  try {
+    const res = await fetch('php/infer_model.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feature_vector: featureVector })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Exercise recognition is unavailable.');
+    if (!data.exercise) throw new Error('Exercise recognition returned no result.');
+    if (data.exercise !== selectedExercise) {
+      addFeedback(`Movement analysis detected ${data.exercise}. Check that the selected exercise matches your movement.`, 'warn', true);
+    }
+  } catch (err) {
+    console.error('Exercise recognition failed', err);
+    if (!aiWarningShown) {
+      aiWarningShown = true;
+      addFeedback('AI exercise recognition is temporarily unavailable. Repetition tracking will continue.', 'warn');
+    }
+  }
+}
+
 async function saveSessionFrame(frameTime, knee, hip, quality, formScore, feedback) {
   if (!activeSessionId) return;
-  try {
-    await fetch('php/session_api.php?action=save_frame', {
+  // Keep outstanding requests so ending a session cannot overtake its last frame.
+  const request = fetch('php/session_api.php?action=save_frame', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -526,52 +604,64 @@ async function saveSessionFrame(frameTime, knee, hip, quality, formScore, feedba
         form_score: formScore,
         feedback
       })
+    }).then(async res => {
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Movement data could not be saved.');
+    }).catch(err => {
+      frameSaveFailures++;
+      console.error('Failed to save session frame', err);
+      if (!frameSaveWarningShown) {
+        frameSaveWarningShown = true;
+        addFeedback('Some movement data could not be saved. Check your connection before ending the session.', 'warn');
+      }
     });
-  } catch (err) {
-    console.error('Failed to save session frame', err);
-  }
+  pendingFrameSaves.add(request);
+  await request;
+  pendingFrameSaves.delete(request);
 }
 
 async function endSession() {
   if (!activeSessionId) {
-    window.location.href = 'dashboard.html';
-    return;
+    addFeedback('No active session to save.', 'warn');
+    return false;
   }
   try {
+    const status = completedSets >= setTarget ? 'completed' : 'partial';
+    await Promise.all([...pendingFrameSaves]);
+    if (frameSaveFailures > 0) {
+      addFeedback(`${frameSaveFailures} movement sample(s) were not saved. The session summary will include available data only.`, 'warn');
+    }
     const res = await fetch('php/session_api.php?action=end', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: activeSessionId,
-        total_reps: repCount,
-        sets_done: setNum,
-        status: 'completed'
+        total_reps: totalRepCount,
+        sets_done: completedSets,
+        status
       })
     });
     const data = await res.json();
-    if (data.ok) {
-      const qualityValue = parseFloat(qualityText?.textContent.replace('%', '') || '0');
-      const formValue = parseFloat(formScoreLbl?.textContent.replace('%', '') || '0');
-      await fetch('php/ai_api.php?action=train', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: activeSessionId,
-          avg_quality: qualityValue,
-          avg_form_score: formValue,
-          total_reps: repCount,
-          sets_done: setNum,
-          feedback_tag: qualityValue >= 80 ? 'positive' : 'improvement',
-          feedback_text: `Recorded session with quality ${qualityValue}% and ${formValue}% form.`
-        })
-      });
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || 'Unable to save session.');
     }
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Session saved';
+      sessionStatus.className = 'badge badge-success';
+    }
+    activeSessionId = null;
+    if (cameraOn) await disableCamera();
+    window.location.href = 'dashboard.html';
+    return true;
   } catch (err) {
     console.error('End session failed', err);
+    addFeedback(err.message || 'Unable to save session. Please try again.', 'warn');
+    if (sessionStatus) {
+      sessionStatus.textContent = 'Save failed';
+      sessionStatus.className = 'badge badge-danger';
+    }
+    return false;
   }
-  activeSessionId = null;
-  if (cameraOn) await disableCamera();
-  window.location.href = 'dashboard.html';
 }
 
 function setQualityScore(pct) {
@@ -588,12 +678,16 @@ function setQualityScore(pct) {
   }
 }
 
-function addFeedback(msg, type = 'info') {
+function addFeedback(msg, type = 'info', isPrompt = false) {
+  if (isPrompt && localStorage.getItem('pref.realtimeFeedback') === '0') return;
   if (!feedbackBody) return;
   const icons = { ok: '✓', warn: '⚠', info: 'ℹ' };
   const div = document.createElement('div');
   div.className = `feedback-msg ${type}`;
-  div.innerHTML = `<span class="feedback-icon">${icons[type] || 'ℹ'}</span> ${msg}`;
+  const icon = document.createElement('span');
+  icon.className = 'feedback-icon';
+  icon.textContent = icons[type] || 'ℹ';
+  div.append(icon, document.createTextNode(` ${msg}`));
   feedbackBody.insertBefore(div, feedbackBody.firstChild);
   // Keep only latest 6
   while (feedbackBody.children.length > 6) {
@@ -607,13 +701,13 @@ function loadScript(src) {
     s.src = src;
     s.async = true;
     s.onload = () => resolve();
-    s.onerror = (e) => reject(new Error('Failed to load ' + src));
+    s.onerror = () => reject(new Error('Failed to load ' + src));
     document.head.appendChild(s);
   });
 }
 
 async function loadMediaPipeScripts() {
-  if (typeof Pose !== 'undefined' && typeof Camera !== 'undefined') return;
+  if (typeof window.Pose !== 'undefined' && typeof window.Camera !== 'undefined') return;
   const bases = [
     'https://cdn.jsdelivr.net/npm/@mediapipe/',
     'https://unpkg.com/@mediapipe/'
@@ -627,10 +721,10 @@ async function loadMediaPipeScripts() {
         await loadScript(base + file);
       }
       const start = Date.now();
-      while ((typeof Pose === 'undefined' || typeof Camera === 'undefined') && Date.now() - start < 8000) {
+      while ((typeof window.Pose === 'undefined' || typeof window.Camera === 'undefined') && Date.now() - start < 8000) {
         await new Promise(r => setTimeout(r, 150));
       }
-      if (typeof Pose !== 'undefined' && typeof Camera !== 'undefined') {
+      if (typeof window.Pose !== 'undefined' && typeof window.Camera !== 'undefined') {
         return;
       }
     } catch (err) {

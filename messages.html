@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Messages - PhysioTrack</title>
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
+  <title>Messages - AI Telerehabilitation</title>
+  <link rel="stylesheet" href="css/main.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/app-polish.css?v=11" />
 </head>
 <body class="app-page">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <img src="images/logo.svg" class="nav-logo" alt="logo">
-      <span class="brand-text">PhysioTrack</span>
+      <img src="images/logo.svg?v=2" class="nav-logo" alt="logo">
+      <span class="brand-text">AI Telerehabilitation</span>
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
@@ -49,6 +50,10 @@
       <div class="mid-row">
         <div class="card messages-card" style="padding:0;">
           <div class="card-header"><span>Conversation</span></div>
+          <div class="form-group" id="conversationPicker" hidden style="margin:0 1rem;">
+            <label class="form-label" for="conversationSelect">Patient</label>
+            <select class="form-control" id="conversationSelect"></select>
+          </div>
           <div class="message-list" id="messageList" style="padding:1rem;">
             <!-- Populated by JavaScript -->
           </div>
@@ -65,11 +70,11 @@
           <div style="display:grid; gap:1rem;">
             <div class="feature-card">
               <h3>Today’s focus</h3>
-              <p class="text-muted">Keep hips level during lunges and avoid knee collapse.</p>
+              <p class="text-muted">Notes shared by your clinician will appear here.</p>
             </div>
             <div class="feature-card">
               <h3>Next appointment</h3>
-              <p class="text-muted">Remote review on Jul 1, 2026 at 10:00 AM.</p>
+              <p class="text-muted">No appointment has been scheduled in the app.</p>
             </div>
           </div>
         </div>
@@ -77,7 +82,7 @@
     </div>
   </main>
 
-  <script src="js/main.js"></script>
-  <script src="js/messages.js"></script>
+  <script src="js/main.js?v=5"></script>
+  <script src="js/messages.js?v=4"></script>
 </body>
 </html>

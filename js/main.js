@@ -13,7 +13,34 @@ if (hamburger) {
 const sidebarToggle = document.getElementById('sidebarToggle');
 if (sidebarToggle) {
   sidebarToggle.addEventListener('click', () => {
-    document.getElementById('sidebar')?.classList.toggle('open');
+    const sidebar = document.getElementById('sidebar');
+    const isOpen = sidebar?.classList.toggle('open') || false;
+    sidebarToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+}
+
+const sidebar = document.getElementById('sidebar');
+if (sidebar && sidebarToggle) {
+  document.addEventListener('click', event => {
+    if (sidebar.classList.contains('open') &&
+        !sidebar.contains(event.target) &&
+        !sidebarToggle.contains(event.target)) {
+      sidebar.classList.remove('open');
+      sidebarToggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+      sidebarToggle.setAttribute('aria-expanded', 'false');
+      sidebarToggle.focus();
+    }
+  });
+  sidebar.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarToggle.setAttribute('aria-expanded', 'false');
+    });
   });
 }
 
@@ -49,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
 <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#2dd4bf" />
-      <stop offset="100%" stop-color="#7c3aed" />
+      <stop offset="0%" stop-color="#a51c28" />
+      <stop offset="100%" stop-color="#6d111a" />
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="12" fill="url(#g)" />
@@ -80,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Shared: load current user and update header/user-chip across pages
 async function loadSharedCurrentUser() {
+  if (!document.getElementById('userName') &&
+      !document.getElementById('userRole') &&
+      !document.getElementById('userAvatar')) return;
   try {
     const res = await fetch('php/me.php');
     if (res.status === 401) return; // not logged in
@@ -90,6 +120,7 @@ async function loadSharedCurrentUser() {
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
     const userAvatarEl = document.getElementById('userAvatar');
+    const headerAvatarEl = document.querySelector('.topbar-right .user-avatar');
     if (userNameEl) userNameEl.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
     if (userRoleEl) {
       const extra = user.role === 'patient' && data.sessions && data.sessions.length ? ` · Day ${data.sessions.length}` : '';
@@ -98,6 +129,7 @@ async function loadSharedCurrentUser() {
     if (userAvatarEl) {
       const initials = `${(user.first_name||'').charAt(0)}${(user.last_name||'').charAt(0)}`.toUpperCase();
       userAvatarEl.textContent = initials || 'A';
+      if (headerAvatarEl) headerAvatarEl.textContent = initials || 'A';
     }
 
     // sync server preferences into localStorage if available

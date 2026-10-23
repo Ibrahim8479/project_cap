@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Settings - PhysioTrack</title>
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
+  <title>Settings - AI Telerehabilitation</title>
+  <link rel="stylesheet" href="css/main.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/app-polish.css?v=11" />
 </head>
 <body class="app-page">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <img src="images/logo.svg" class="nav-logo" alt="logo">
-      <span class="brand-text">PhysioTrack</span>
+      <img src="images/logo.svg?v=2" class="nav-logo" alt="logo">
+      <span class="brand-text">AI Telerehabilitation</span>
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.html" class="nav-item"><span class="nav-icon">⊞</span> Dashboard</a>
@@ -66,19 +67,19 @@
       <div class="session-table card" style="padding:1.5rem;">
         <div class="card-header"><span>Preferences</span></div>
         <div class="form-group">
-          <label class="checkbox-label"><input type="checkbox" id="prefReceiveReminders" /> Receive session reminders</label>
+          <label class="checkbox-label"><input type="checkbox" id="prefReceiveReminders" disabled /> Session reminders (coming soon)</label>
         </div>
         <div class="form-group">
           <label class="checkbox-label"><input type="checkbox" id="prefRealtimeFeedback" /> Enable real-time feedback prompts</label>
         </div>
         <div class="form-group">
-          <label class="checkbox-label"><input type="checkbox" id="prefDarkMode" /> Dark mode (coming soon)</label>
+          <label class="checkbox-label"><input type="checkbox" id="prefDarkMode" disabled /> Dark mode (coming soon)</label>
         </div>
       </div>
     </div>
   </main>
 
-  <script src="js/main.js"></script>
-  <script src="js/dashboard.js"></script>
+  <script src="js/main.js?v=5"></script>
+  <script src="js/dashboard.js?v=10"></script>
 </body>
 </html>

@@ -10,20 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Collect + sanitize
-$first_name = htmlspecialchars(trim($_POST['first_name'] ?? ''));
-$last_name  = htmlspecialchars(trim($_POST['last_name']  ?? ''));
+$first_name = trim($_POST['first_name'] ?? '');
+$last_name  = trim($_POST['last_name']  ?? '');
 $email      = trim($_POST['email']    ?? '');
 $password   = trim($_POST['password'] ?? '');
 $pwd_confirm= trim($_POST['password_confirm'] ?? '');
 $role       = in_array($_POST['role'] ?? '', ['patient','clinician']) ? $_POST['role'] : 'patient';
 
 // Patient-specific
-$condition       = htmlspecialchars(trim($_POST['condition']      ?? ''));
-$clinician_code  = htmlspecialchars(trim($_POST['clinician_code'] ?? ''));
+$condition       = trim($_POST['condition']      ?? '');
+$clinician_code  = trim($_POST['clinician_code'] ?? '');
 
 // Clinician-specific
-$clinic          = htmlspecialchars(trim($_POST['clinic']          ?? ''));
-$specialization  = htmlspecialchars(trim($_POST['specialization']  ?? ''));
+$clinic          = trim($_POST['clinic']          ?? '');
+$specialization  = trim($_POST['specialization']  ?? '');
 
 // Validation
 $errors = [];
@@ -49,6 +49,25 @@ if ($stmt->fetch()) {
     exit;
 }
 
+$linkedClinician = null;
+if ($role === 'patient' && $clinician_code) {
+    $cStmt = $db->prepare('SELECT id FROM users WHERE clinician_code = ? AND role = "clinician" LIMIT 1');
+    $cStmt->execute([$clinician_code]);
+    $linkedClinician = $cStmt->fetch();
+    if (!$linkedClinician) {
+        header('Location: ../register.html?error=invalid_clinician_code');
+        exit;
+    }
+}
+
+if ($role === 'clinician') {
+    $codeStmt = $db->prepare('SELECT id FROM users WHERE clinician_code = ? LIMIT 1');
+    do {
+        $clinician_code = 'DR-' . strtoupper(bin2hex(random_bytes(3)));
+        $codeStmt->execute([$clinician_code]);
+    } while ($codeStmt->fetch());
+}
+
 // Hash password
 $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
@@ -64,14 +83,9 @@ $stmt->execute([
 $user_id = (int)$db->lastInsertId();
 
 // If patient gave a clinician code, link them
-if ($role === 'patient' && $clinician_code) {
-    $cStmt = $db->prepare('SELECT id FROM users WHERE clinician_code = ? AND role = "clinician" LIMIT 1');
-    $cStmt->execute([$clinician_code]);
-    $clinician = $cStmt->fetch();
-    if ($clinician) {
-        $link = $db->prepare('INSERT IGNORE INTO clinician_patients (clinician_id, patient_id) VALUES (?, ?)');
-        $link->execute([$clinician['id'], $user_id]);
-    }
+if ($linkedClinician) {
+    $link = $db->prepare('INSERT IGNORE INTO clinician_patients (clinician_id, patient_id) VALUES (?, ?)');
+    $link->execute([$linkedClinician['id'], $user_id]);
 }
 
 // Start session

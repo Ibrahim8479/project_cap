@@ -12,7 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $email    = trim($_POST['email']    ?? '');
 $password = trim($_POST['password'] ?? '');
 $role     = in_array($_POST['role'] ?? '', ['patient','clinician']) ? $_POST['role'] : 'patient';
-$remember = isset($_POST['remember']);
 
 // Basic validation
 if (!$email || !$password) {
@@ -47,13 +46,6 @@ $_SESSION['first_name'] = $user['first_name'];
 $_SESSION['last_name']  = $user['last_name'];
 $_SESSION['role']       = $user['role'];
 session_regenerate_id(true);
-
-// Remember-me cookie (7 days)
-if ($remember) {
-    $token = bin2hex(random_bytes(32));
-    setcookie('remember_token', $token, time() + 7 * 86400, '/', '', false, true);
-    // TODO: store token hash in a remember_tokens table
-}
 
 // Redirect by role
 if ($user['role'] === 'clinician') {

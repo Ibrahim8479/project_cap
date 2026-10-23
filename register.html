@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Register - PhysioTrack</title>
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/auth.css" />
+  <title>Create Account - AI Telerehabilitation</title>
+  <link rel="stylesheet" href="css/main.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/auth.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/app-polish.css?v=11" />
 </head>
 <body class="auth-page">
 
   <div class="auth-layout">
     <div class="auth-left">
       <div class="auth-brand">
-        <span class="nav-logo">⟁</span>
-        <span class="nav-name">PhysioTrack</span>
+        <img src="images/logo.svg?v=2" class="nav-logo" alt="AI Telerehabilitation">
+        <span class="nav-name">AI Telerehabilitation</span>
       </div>
       <div class="auth-left-body">
         <h2>Start your recovery today.</h2>
@@ -28,9 +29,13 @@
 
     <div class="auth-right">
       <div class="auth-form-wrap">
+        <div class="auth-brand">
+          <img src="images/logo.svg?v=2" alt="">
+          <span>AI Telerehabilitation</span>
+        </div>
         <div class="role-toggle" id="roleToggle">
           <button class="role-btn active" data-role="patient">Patient</button>
-          <button class="role-btn" data-role="clinician">Clinician</button>
+          <button class="role-btn" data-role="clinician">Physiotherapist</button>
         </div>
 
         <h1 class="auth-title">Create Account</h1>
@@ -78,7 +83,7 @@
           <div id="clinicianFields" style="display:none;">
             <div class="form-group">
               <label class="form-label">Clinic / Hospital</label>
-              <input class="form-control" type="text" name="clinic" placeholder="City PhysioTracklitation Center" />
+              <input class="form-control" type="text" name="clinic" placeholder="City Rehabilitation Center" />
             </div>
             <div class="form-group">
               <label class="form-label">Specialization</label>
@@ -116,6 +121,6 @@
     </div>
   </div>
 
-  <script src="js/auth.js"></script>
+  <script src="js/auth.js?v=2"></script>
 </body>
 </html>

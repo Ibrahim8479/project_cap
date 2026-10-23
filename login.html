@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - PhysioTrack</title>
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/auth.css" />
+  <title>Sign In - AI Telerehabilitation</title>
+  <link rel="stylesheet" href="css/main.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/auth.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/app-polish.css?v=11" />
 </head>
 <body class="auth-page">
 
@@ -13,8 +14,8 @@
     <!-- Left panel -->
     <div class="auth-left">
       <div class="auth-brand">
-        <span class="nav-logo">⟁</span>
-        <span class="nav-name">PhysioTrack</span>
+        <img src="images/logo.svg?v=2" class="nav-logo" alt="AI Telerehabilitation">
+        <span class="nav-name">AI Telerehabilitation</span>
       </div>
       <div class="auth-left-body">
         <h2>Welcome back.</h2>
@@ -43,9 +44,9 @@
           </svg>
         </div>
         <div class="auth-bullets">
-          <div class="auth-bullet"><span>✓</span> Real-time movement analysis</div>
+          <div class="auth-bullet"><span>✓</span> Camera-based pose landmarks</div>
           <div class="auth-bullet"><span>✓</span> Clinician remote monitoring</div>
-          <div class="auth-bullet"><span>✓</span> Quality scoring and feedback</div>
+          <div class="auth-bullet"><span>✓</span> Lower-body movement estimates</div>
         </div>
       </div>
     </div>
@@ -53,10 +54,14 @@
     <!-- Right panel: login form -->
     <div class="auth-right">
       <div class="auth-form-wrap">
+        <div class="auth-brand">
+          <img src="images/logo.svg?v=2" alt="">
+          <span>AI Telerehabilitation</span>
+        </div>
         <!-- Role toggle -->
         <div class="role-toggle" id="roleToggle">
           <button class="role-btn active" data-role="patient">Patient</button>
-          <button class="role-btn" data-role="clinician">Clinician</button>
+          <button class="role-btn" data-role="clinician">Physiotherapist</button>
         </div>
 
         <h1 class="auth-title">Sign In</h1>
@@ -79,9 +84,6 @@
           </div>
 
           <div class="form-row">
-            <label class="checkbox-label">
-              <input type="checkbox" name="remember" /> Remember me
-            </label>
             <a href="forgot.html" class="forgot-link">Forgot password?</a>
           </div>
 
@@ -93,6 +95,6 @@
     </div>
   </div>
 
-  <script src="js/auth.js"></script>
+  <script src="js/auth.js?v=2"></script>
 </body>
 </html>
