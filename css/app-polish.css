@@ -81,9 +81,59 @@ body {
 .brand-text { margin-left: 0; }
 
 .user-avatar {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   background: #f8e9eb !important;
   color: #963641;
 }
+
+.user-avatar.has-profile-photo { font-size: 0 !important; }
+.user-avatar .profile-avatar-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.profile-photo-settings {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-photo-preview {
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  font-size: 1.25rem;
+}
+
+.reminder-time-setting {
+  margin: .75rem 0 1.25rem 1.5rem;
+  max-width: 320px;
+}
+
+.reminder-time-setting small {
+  display: block;
+  margin-top: .35rem;
+  line-height: 1.45;
+}
+
+.patient-profile-avatar {
+  width: 52px;
+  height: 52px;
+  margin-bottom: .65rem;
+  font-size: 1rem;
+}
+
+.profile-photo-controls { min-width: 0; }
+.profile-photo-controls [hidden] { display: none !important; }
+.profile-photo-controls p { margin: .2rem 0 .65rem; font-size: .85rem; }
+.profile-photo-status { min-height: 1.25rem; }
 
 .sidebar-nav { padding: 0 .8rem; }
 
@@ -99,7 +149,7 @@ body {
   box-shadow: inset 3px 0 var(--teal);
 }
 
-.main-content { margin-left: 252px; }
+.main-content { margin-left: 252px; min-width: 0; }
 
 .topbar {
   min-height: 76px;
@@ -476,7 +526,7 @@ body {
   .session-sidebar { grid-template-columns: 1fr; gap: .8rem; }
   .camera-header { gap: .5rem; padding: .65rem .75rem; }
   .camera-header .model-badge { display: none; }
-  .session-table { min-width: 540px; }
+  table.session-table { min-width: 540px; }
   .form-row-2 { grid-template-columns: 1fr; gap: 0; }
 }
 
@@ -761,6 +811,172 @@ a { color: var(--teal); }
   .skeleton-placeholder svg { width: 92px; }
 }
 
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-deep: #141920;
+  --bg-card: #1d252f;
+  --bg-panel: #252f3b;
+  --border: #3a4655;
+  --border-glow: #cb526366;
+  --teal: #e06a78;
+  --teal-dim: #c94d5e;
+  --violet: #9eabc0;
+  --violet-dim: #8292aa;
+  --success: #56bd9d;
+  --warning: #e6b45e;
+  --danger: #e06a78;
+  --text-primary: #f0f3f7;
+  --text-secondary: #c1cad6;
+  --text-muted: #9aa7b7;
+}
+
+html[data-theme="dark"] body {
+  background-color: var(--bg-deep);
+  background-image:
+    linear-gradient(rgba(20, 25, 32, .96), rgba(20, 25, 32, .96)),
+    var(--app-background-image);
+}
+
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .nav,
+html[data-theme="dark"] .auth-form-wrap {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .nav {
+  background: rgba(29, 37, 47, .97);
+}
+
+html[data-theme="dark"] .auth-page,
+html[data-theme="dark"] .auth-left,
+html[data-theme="dark"] .auth-right,
+html[data-theme="dark"] .footer {
+  background: var(--bg-deep);
+}
+
+html[data-theme="dark"] .auth-left {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .plan-cta,
+html[data-theme="dark"] .hero,
+html[data-theme="dark"] .cta-section {
+  border-color: var(--border);
+  background: linear-gradient(125deg, #252f3b, #1d252f);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .role-toggle,
+html[data-theme="dark"] .message-input {
+  background-color: var(--bg-panel);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .form-control::placeholder {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .nav-item.active,
+html[data-theme="dark"] .nav-item:hover,
+html[data-theme="dark"] .ex-select-item.active,
+html[data-theme="dark"] .feature-icon,
+html[data-theme="dark"] .hero-eyebrow {
+  background-color: #3a2930;
+  border-color: #68414a;
+}
+
+html[data-theme="dark"] .session-table th {
+  background: #252f3b;
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .session-table tr:hover td {
+  background: #252f3b;
+}
+
+html[data-theme="dark"] .msg-sent .msg-body {
+  background: #3a2930;
+  border-color: #68414a;
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .msg-received .msg-body {
+  background: var(--bg-panel);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .user-avatar {
+  background: #3a2930 !important;
+  color: #f0b1b8;
+}
+
+html[data-theme="dark"] .camera-header,
+html[data-theme="dark"] .camera-footer,
+html[data-theme="dark"] .pose-footer {
+  background: var(--bg-card);
+}
+
+html[data-theme="dark"] .badge-warning {
+  background: #483920;
+  border-color: #806334;
+  color: #f1cf8b;
+}
+
+html[data-theme="dark"] .badge-danger,
+html[data-theme="dark"] .badge-teal {
+  background: #3a2930;
+  border-color: #68414a;
+  color: #f0b1b8;
+}
+
+.session-reminder-notice {
+  position: fixed;
+  z-index: 200;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: min(620px, calc(100vw - 2rem));
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--teal);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, .2);
+}
+
+.session-reminder-notice p {
+  margin-top: .2rem;
+  color: var(--text-secondary);
+  font-size: .9rem;
+}
+
+.session-reminder-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .35rem;
+}
+
+@media (max-width: 560px) {
+  .session-reminder-notice {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .75rem;
+  }
+
+  .session-reminder-actions { justify-content: flex-end; }
+}
+
 /* Reference-led finishing pass across public and signed-in screens. */
 .landing-page .nav {
   position: sticky;
@@ -827,7 +1043,7 @@ a { color: var(--teal); }
 .auth-page .form-group { margin-bottom: 1rem; }
 .auth-page .auth-sub { line-height: 1.55; }
 
-.content-area { max-width: 1600px; }
+.content-area { max-width: 1600px; min-width: 0; }
 .plan-cta { min-height: 200px; }
 .plan-cta .clinical-note { max-width: 280px; }
 
@@ -880,11 +1096,18 @@ a { color: var(--teal); }
 .clinician-right { min-width: 0; }
 .clinician-right > .card { overflow: hidden; }
 .clinician-right canvas { display: block; max-width: 100%; }
-.patient-list-card .session-table { min-width: 760px; }
+.patient-list-card table.session-table { min-width: 760px; }
 
 .session-layout { max-width: 1700px; margin-inline: auto; width: 100%; }
 .session-guidance p { line-height: 1.65; }
 .rhythm-card { min-height: 108px; }
+.hamburger {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  touch-action: manipulation;
+}
 
 @media (max-width: 900px) {
   .session-layout { grid-template-columns: minmax(0, 1fr); }

@@ -109,6 +109,10 @@ async function loadPatientDetail() {
       statCards[0].querySelector('.stat-card-num').textContent = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
       statCards[0].querySelector('.text-muted').textContent = patient.condition_type || 'No condition recorded';
     }
+    const patientAvatar = document.getElementById('patientProfileAvatar');
+    if (patientAvatar && typeof window.setUserProfileAvatar === 'function') {
+      window.setUserProfileAvatar(patientAvatar, patient);
+    }
 
     if (statCards[1]) {
       statCards[1].querySelector('.stat-card-label').textContent = 'Current Activity';
@@ -225,7 +229,8 @@ async function loadClinicianUser() {
 
     document.getElementById('userName') && (document.getElementById('userName').textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim());
     document.getElementById('userRole') && (document.getElementById('userRole').textContent = user.role === 'clinician' ? 'Physiotherapist' : 'Clinician');
-    document.getElementById('userAvatar') && (document.getElementById('userAvatar').textContent = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase());
+    if (typeof window.setUserProfileAvatars === 'function') window.setUserProfileAvatars(user);
+    else document.getElementById('userAvatar') && (document.getElementById('userAvatar').textContent = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase());
     const clinicianCode = document.getElementById('clinicianCode');
     if (clinicianCode) clinicianCode.textContent = user.clinician_code || 'Contact support to set up your code';
     document.getElementById('totalPatients') && (document.getElementById('totalPatients').textContent = data.patient_count || 0);
@@ -273,6 +278,7 @@ async function loadPatientList() {
       avatar.className = 'user-avatar';
       avatar.style.cssText = 'width:30px;height:30px;font-size:.75rem;';
       avatar.textContent = (p.first_name || '?').charAt(0).toUpperCase();
+      if (typeof window.setUserProfileAvatar === 'function') window.setUserProfileAvatar(avatar, p);
       const nameInfo = document.createElement('div');
       const name = document.createElement('div');
       name.style.cssText = 'font-size:.875rem;font-weight:600;';

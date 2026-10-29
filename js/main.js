@@ -1,5 +1,16 @@
 // main.js - shared across all pages
 
+function applyUserTheme(isDark) {
+  document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+  document.dispatchEvent(new CustomEvent('app-theme-change', { detail: { dark: isDark } }));
+}
+
+try {
+  applyUserTheme(localStorage.getItem('pref.darkMode') === '1');
+} catch (err) {
+  console.debug('Unable to load saved theme preference', err);
+}
+
 // Mobile nav toggle
 const hamburger = document.getElementById('hamburger');
 if (hamburger) {
@@ -106,10 +117,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Shared: load current user and update header/user-chip across pages
+window.setUserProfileAvatar = function (avatar, user) {
+  const initials = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase() || 'A';
+  avatar.textContent = initials;
+  avatar.classList.toggle('has-profile-photo', Boolean(user.profile_picture_url));
+  avatar.querySelector('.profile-avatar-image')?.remove();
+  if (!user.profile_picture_url) return;
+
+  const image = document.createElement('img');
+  image.className = 'profile-avatar-image';
+  image.src = user.profile_picture_url;
+  image.alt = '';
+  image.setAttribute('aria-hidden', 'true');
+  image.addEventListener('error', () => {
+    image.remove();
+    avatar.classList.remove('has-profile-photo');
+  }, { once: true });
+  avatar.appendChild(image);
+};
+
+window.setUserProfileAvatars = function (user) {
+  document.querySelectorAll('.user-avatar').forEach(avatar => {
+    if (avatar.closest('.patient-cell') || avatar.id === 'patientProfileAvatar') return;
+    window.setUserProfileAvatar(avatar, user);
+  });
+};
+
 async function loadSharedCurrentUser() {
-  if (!document.getElementById('userName') &&
-      !document.getElementById('userRole') &&
-      !document.getElementById('userAvatar')) return;
   try {
     const res = await fetch('php/me.php');
     if (res.status === 401) return; // not logged in
@@ -119,18 +153,14 @@ async function loadSharedCurrentUser() {
     // set header elements
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
-    const userAvatarEl = document.getElementById('userAvatar');
-    const headerAvatarEl = document.querySelector('.topbar-right .user-avatar');
     if (userNameEl) userNameEl.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
     if (userRoleEl) {
       const extra = user.role === 'patient' && data.sessions && data.sessions.length ? ` · Day ${data.sessions.length}` : '';
       userRoleEl.textContent = (user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : '') + extra;
     }
-    if (userAvatarEl) {
-      const initials = `${(user.first_name||'').charAt(0)}${(user.last_name||'').charAt(0)}`.toUpperCase();
-      userAvatarEl.textContent = initials || 'A';
-      if (headerAvatarEl) headerAvatarEl.textContent = initials || 'A';
-    }
+    const reminderSettings = document.getElementById('patientReminderSettings');
+    if (reminderSettings) reminderSettings.hidden = user.role !== 'patient';
+    window.setUserProfileAvatars(user);
 
     // sync server preferences into localStorage if available
     if (data.user.preferences) {
@@ -138,11 +168,89 @@ async function loadSharedCurrentUser() {
       localStorage.setItem('pref.receiveReminders', prefs.receive_reminders ? '1' : '0');
       localStorage.setItem('pref.realtimeFeedback', prefs.realtime_feedback ? '1' : '0');
       localStorage.setItem('pref.darkMode', prefs.dark_mode ? '1' : '0');
+      localStorage.setItem('pref.reminderTime', prefs.reminder_time || '18:00');
+      applyUserTheme(prefs.dark_mode);
+      const reminderToggle = document.getElementById('prefReceiveReminders');
+      const reminderTime = document.getElementById('prefReminderTime');
+      const feedbackToggle = document.getElementById('prefRealtimeFeedback');
+      const darkToggle = document.getElementById('prefDarkMode');
+      if (reminderToggle) reminderToggle.checked = prefs.receive_reminders;
+      if (reminderTime) {
+        reminderTime.value = prefs.reminder_time || '18:00';
+        reminderTime.disabled = !prefs.receive_reminders;
+      }
+      if (feedbackToggle) feedbackToggle.checked = prefs.realtime_feedback;
+      if (darkToggle) darkToggle.checked = prefs.dark_mode;
     }
+    maybeShowSessionReminder(data);
   } catch (err) {
     // silently ignore - shared loader shouldn't block page
     console.debug('loadSharedCurrentUser failed', err);
   }
+}
+
+function getLocalDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function hasCompletedSessionToday(sessions) {
+  const today = getLocalDateKey();
+  return sessions.some(session => {
+    if (session.status !== 'completed') return false;
+    const startedAt = new Date(String(session.started_at || '').replace(' ', 'T'));
+    return !Number.isNaN(startedAt.getTime()) && getLocalDateKey(startedAt) === today;
+  });
+}
+
+function maybeShowSessionReminder(data) {
+  const user = data.user;
+  const preferences = user.preferences || {};
+  if (
+    user.role !== 'patient' ||
+    !preferences.receive_reminders ||
+    window.location.pathname.endsWith('/session.html') ||
+    hasCompletedSessionToday(data.sessions || [])
+  ) return;
+
+  const reminderTime = /^\d{2}:\d{2}$/.test(preferences.reminder_time || '')
+    ? preferences.reminder_time
+    : '18:00';
+  const [hours, minutes] = reminderTime.split(':').map(Number);
+  const now = new Date();
+  if (now.getHours() * 60 + now.getMinutes() < hours * 60 + minutes) return;
+
+  const dateKey = getLocalDateKey(now);
+  const reminderKey = `sessionReminderShown.${user.id}.${dateKey}`;
+  if (localStorage.getItem(reminderKey) === '1') return;
+  localStorage.setItem(reminderKey, '1');
+
+  const notice = document.createElement('section');
+  notice.className = 'session-reminder-notice';
+  notice.id = 'sessionReminderNotice';
+  notice.setAttribute('role', 'status');
+  notice.setAttribute('aria-live', 'polite');
+
+  const message = document.createElement('div');
+  const title = document.createElement('strong');
+  title.textContent = 'Your daily movement reminder';
+  const detail = document.createElement('p');
+  detail.textContent = 'You have not completed a session today. Ready to work on your exercises?';
+  message.append(title, detail);
+
+  const actions = document.createElement('div');
+  actions.className = 'session-reminder-actions';
+  const start = document.createElement('a');
+  start.className = 'btn btn-primary btn-sm';
+  start.href = 'session.html';
+  start.textContent = 'Start a session';
+  const dismiss = document.createElement('button');
+  dismiss.className = 'btn btn-ghost btn-sm';
+  dismiss.type = 'button';
+  dismiss.textContent = 'Dismiss';
+  dismiss.addEventListener('click', () => notice.remove());
+  actions.append(start, dismiss);
+  notice.append(message, actions);
+  document.body.appendChild(notice);
 }
 
 document.addEventListener('DOMContentLoaded', loadSharedCurrentUser);

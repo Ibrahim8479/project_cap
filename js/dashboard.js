@@ -24,7 +24,8 @@ function setPageUserHeader(user) {
 
   if (userNameEl) userNameEl.textContent = name;
   if (userRoleEl) userRoleEl.textContent = user.role || '';
-  if (userAvatarEl) userAvatarEl.textContent = initials || 'A';
+  if (typeof window.setUserProfileAvatars === 'function') window.setUserProfileAvatars(user);
+  else if (userAvatarEl) userAvatarEl.textContent = initials || 'A';
   if (greeting) {
     const hour = new Date().getHours();
     const salutation = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -37,6 +38,11 @@ function setPageUserHeader(user) {
   if (settingsName) settingsName.value = name;
   if (settingsEmail) settingsEmail.value = user.email || '';
   if (settingsPhone) settingsPhone.value = user.phone || '';
+  const settingsAvatar = document.getElementById('settingsProfileAvatar');
+  if (settingsAvatar) {
+    const removeButton = document.getElementById('removeProfilePhoto');
+    if (removeButton) removeButton.hidden = !user.profile_picture_url;
+  }
 }
 
 async function saveAccountSettings() {
@@ -53,14 +59,34 @@ async function saveAccountSettings() {
   const lastName = parts.join(' ') || '';
 
   try {
+    const profileForm = new FormData();
+    profileForm.append('first_name', firstName);
+    profileForm.append('last_name', lastName);
+    profileForm.append('email', email);
+    profileForm.append('phone', phone);
+    profileForm.append('remove_profile_picture', document.getElementById('profilePictureRemove')?.value || '0');
+    const photoInput = document.getElementById('profilePictureInput');
+    if (photoInput?.files?.[0]) profileForm.append('profile_picture', photoInput.files[0]);
+
     const res = await fetch('php/me.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, phone })
+      body: profileForm
     });
     const data = await res.json();
     if (res.ok && data.user) {
+      const photoStatus = document.getElementById('profilePhotoStatus');
+      if (photoStatus) {
+        photoStatus.textContent = document.getElementById('profilePictureRemove')?.value === '1'
+          ? 'Profile photo removed.'
+          : photoInput?.files?.[0]
+            ? 'Profile photo updated.'
+            : 'Profile details saved.';
+      }
       setPageUserHeader(data.user);
+      if (photoInput) photoInput.value = '';
+      const removePhotoInput = document.getElementById('profilePictureRemove');
+      if (removePhotoInput) removePhotoInput.value = '0';
+      clearProfilePhotoPreview();
       alert('Profile settings saved successfully.');
     } else {
       alert(data.error || 'Unable to save settings.');
@@ -114,6 +140,7 @@ function renderProgressChart(progress = []) {
 document.getElementById('progressMetric')?.addEventListener('change', () => {
   renderProgressChart(currentProgressData);
 });
+document.addEventListener('app-theme-change', () => renderProgressChart(currentProgressData));
 
 // ------------------------------
 // Populate dashboard via php/me.php
@@ -127,6 +154,8 @@ async function populateDashboard() {
 
     const user = data.user || {};
     setPageUserHeader(user);
+    const reminderSettings = document.getElementById('patientReminderSettings');
+    if (reminderSettings) reminderSettings.hidden = user.role !== 'patient';
     const patientPage = ['dashboard.html', 'progress.html', 'exercises.html']
       .some(page => window.location.pathname.endsWith(page));
     if (user.role === 'clinician' && patientPage) {
@@ -137,13 +166,22 @@ async function populateDashboard() {
     // If server returned preferences, apply them to settings UI and localStorage
     if (data.user && data.user.preferences) {
       const prefs = data.user.preferences;
+      const elReminders = document.getElementById('prefReceiveReminders');
+      const elReminderTime = document.getElementById('prefReminderTime');
       const elRealtime = document.getElementById('prefRealtimeFeedback');
       const elDark = document.getElementById('prefDarkMode');
+      if (elReminders) elReminders.checked = !!prefs.receive_reminders;
+      if (elReminderTime) {
+        elReminderTime.value = prefs.reminder_time || '18:00';
+        elReminderTime.disabled = !prefs.receive_reminders;
+      }
       if (elRealtime) elRealtime.checked = !!prefs.realtime_feedback;
       if (elDark) elDark.checked = !!prefs.dark_mode;
       localStorage.setItem('pref.receiveReminders', prefs.receive_reminders ? '1' : '0');
+      localStorage.setItem('pref.reminderTime', prefs.reminder_time || '18:00');
       localStorage.setItem('pref.realtimeFeedback', prefs.realtime_feedback ? '1' : '0');
       localStorage.setItem('pref.darkMode', prefs.dark_mode ? '1' : '0');
+      if (typeof window.applyUserTheme === 'function') window.applyUserTheme(prefs.dark_mode);
     }
 
     if (user.role === 'patient') {
@@ -286,43 +324,181 @@ document.addEventListener('DOMContentLoaded', () => {
   populateDashboard();
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveAccountSettings);
+  initializeProfilePhotoControls();
 });
 
-// --- Preferences: load/save to localStorage for now ---
+let profilePhotoPreviewUrl = null;
+
+function clearProfilePhotoPreview() {
+  if (profilePhotoPreviewUrl) URL.revokeObjectURL(profilePhotoPreviewUrl);
+  profilePhotoPreviewUrl = null;
+}
+
+function initializeProfilePhotoControls() {
+  const input = document.getElementById('profilePictureInput');
+  const chooseButton = document.getElementById('chooseProfilePhoto');
+  const removeButton = document.getElementById('removeProfilePhoto');
+  const removeField = document.getElementById('profilePictureRemove');
+  const preview = document.getElementById('settingsProfileAvatar');
+  const status = document.getElementById('profilePhotoStatus');
+  if (!input || !chooseButton || !removeButton || !removeField || !preview || !status) return;
+
+  chooseButton.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      input.value = '';
+      status.textContent = 'Choose a JPG, PNG, or WebP image.';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      input.value = '';
+      status.textContent = 'Choose an image smaller than 5 MB.';
+      return;
+    }
+
+    clearProfilePhotoPreview();
+    profilePhotoPreviewUrl = URL.createObjectURL(file);
+    const user = {
+      first_name: document.getElementById('accountFullName')?.value.trim().split(/\s+/)[0] || '',
+      last_name: document.getElementById('accountFullName')?.value.trim().split(/\s+/).slice(1).join(' ') || '',
+      profile_picture_url: profilePhotoPreviewUrl
+    };
+    if (typeof window.setUserProfileAvatars === 'function') {
+      window.setUserProfileAvatars(user);
+    }
+    removeField.value = '0';
+    removeButton.hidden = false;
+    status.textContent = 'Photo preview ready. Save changes to update your profile photo.';
+  });
+
+  removeButton.addEventListener('click', () => {
+    const name = document.getElementById('accountFullName')?.value.trim() || '';
+    const parts = name.split(/\s+/);
+    clearProfilePhotoPreview();
+    if (typeof window.setUserProfileAvatars === 'function') {
+      window.setUserProfileAvatars({
+        first_name: parts[0] || '',
+        last_name: parts.slice(1).join(' '),
+        profile_picture_url: null
+      });
+    }
+    input.value = '';
+    removeField.value = '1';
+    removeButton.hidden = true;
+    status.textContent = 'Photo will be removed when you save changes.';
+  });
+}
+
+// --- Preferences ---
 function loadPreferences() {
+  const reminders = localStorage.getItem('pref.receiveReminders') !== '0';
   const realtime = localStorage.getItem('pref.realtimeFeedback') === '1';
   const dark = localStorage.getItem('pref.darkMode') === '1';
+  const reminderTime = localStorage.getItem('pref.reminderTime') || '18:00';
+  const elReminders = document.getElementById('prefReceiveReminders');
+  const elReminderTime = document.getElementById('prefReminderTime');
   const elRealtime = document.getElementById('prefRealtimeFeedback');
   const elDark = document.getElementById('prefDarkMode');
+  if (elReminders) elReminders.checked = reminders;
+  if (elReminderTime) {
+    elReminderTime.value = reminderTime;
+    elReminderTime.disabled = !reminders;
+  }
   if (elRealtime) elRealtime.checked = realtime;
   if (elDark) elDark.checked = dark;
+  if (typeof window.applyUserTheme === 'function') window.applyUserTheme(dark);
+}
+
+function setPreferencesStatus(message) {
+  const status = document.getElementById('preferencesStatus');
+  if (status) status.textContent = message;
 }
 
 async function savePreference(key, value) {
+  const previousValue = localStorage.getItem(key) === '1';
   localStorage.setItem(key, value ? '1' : '0');
-  // Also attempt to persist server-side for logged-in users
   const shortKey = key.replace('pref.', '');
   const body = {};
   if (shortKey === 'receiveReminders') body.receive_reminders = value ? 1 : 0;
   if (shortKey === 'realtimeFeedback') body.realtime_feedback = value ? 1 : 0;
   if (shortKey === 'darkMode') body.dark_mode = value ? 1 : 0;
   if (Object.keys(body).length === 0) return;
+  if (shortKey === 'darkMode' && typeof window.applyUserTheme === 'function') {
+    window.applyUserTheme(value);
+  }
+  if (shortKey === 'receiveReminders') {
+    const timeInput = document.getElementById('prefReminderTime');
+    if (timeInput) timeInput.disabled = !value;
+  }
+  setPreferencesStatus('Saving preference…');
   try {
     const response = await fetch('php/me.php', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
     const data = await response.json();
     if (!response.ok || data.error) throw new Error(data.error || 'Unable to save preference.');
+    setPreferencesStatus('Preference saved.');
   } catch (err) {
     console.error('Failed to save preference', err);
+    localStorage.setItem(key, previousValue ? '1' : '0');
+    if (shortKey === 'darkMode') {
+      const toggle = document.getElementById('prefDarkMode');
+      if (toggle) toggle.checked = previousValue;
+      if (typeof window.applyUserTheme === 'function') window.applyUserTheme(previousValue);
+    }
+    if (shortKey === 'receiveReminders') {
+      const toggle = document.getElementById('prefReceiveReminders');
+      const timeInput = document.getElementById('prefReminderTime');
+      if (toggle) toggle.checked = previousValue;
+      if (timeInput) timeInput.disabled = !previousValue;
+    }
+    setPreferencesStatus(err.message || 'Unable to save preference.');
     alert(err.message || 'Unable to save preference.');
+  }
+}
+
+async function saveReminderTime(value) {
+  const input = document.getElementById('prefReminderTime');
+  const previousValue = localStorage.getItem('pref.reminderTime') || '18:00';
+  if (!input || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    setPreferencesStatus('Choose a valid reminder time.');
+    if (input) input.value = previousValue;
+    return;
+  }
+
+  input.value = value;
+  localStorage.setItem('pref.reminderTime', value);
+  setPreferencesStatus('Saving reminder time…');
+  try {
+    const response = await fetch('php/me.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reminder_time: value })
+    });
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || 'Unable to save reminder time.');
+    setPreferencesStatus('Reminder time saved.');
+  } catch (err) {
+    console.error('Failed to save reminder time', err);
+    input.value = previousValue;
+    localStorage.setItem('pref.reminderTime', previousValue);
+    setPreferencesStatus(err.message || 'Unable to save reminder time.');
+    alert(err.message || 'Unable to save reminder time.');
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadPreferences();
+  const elReminders = document.getElementById('prefReceiveReminders');
+  const elReminderTime = document.getElementById('prefReminderTime');
   const elRealtime = document.getElementById('prefRealtimeFeedback');
   const elDark = document.getElementById('prefDarkMode');
+  if (elReminders) elReminders.addEventListener('change', event => savePreference('pref.receiveReminders', event.target.checked));
+  if (elReminderTime) elReminderTime.addEventListener('change', event => saveReminderTime(event.target.value));
   if (elRealtime) elRealtime.addEventListener('change', e => savePreference('pref.realtimeFeedback', e.target.checked));
   if (elDark) elDark.addEventListener('change', e => savePreference('pref.darkMode', e.target.checked));
 });

@@ -70,6 +70,7 @@ function setPageUserHeader(user) {
   const userRoleEl = document.getElementById('userRole');
   if (userNameEl) userNameEl.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
   if (userRoleEl) userRoleEl.textContent = user.role || '';
+  if (typeof window.setUserProfileAvatars === 'function') window.setUserProfileAvatars(user);
 }
 
 async function loadCurrentUser() {

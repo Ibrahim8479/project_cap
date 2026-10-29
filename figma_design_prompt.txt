@@ -1,0 +1,145 @@
+FIGMA DESIGN PROMPT
+AI TELEREHABILITATION SYSTEM
+
+ROLE
+Act as a senior product designer creating a polished, accessible, responsive web application design in Figma for an existing lower-body telerehabilitation project. The product is for patients exercising at home and physiotherapists reviewing their linked patients' activity. Design a realistic interface that can be implemented with the project's existing HTML, CSS, JavaScript, PHP APIs, and MySQL data model.
+
+PRODUCT PURPOSE
+Help patients start and review camera-assisted lower-body exercise sessions, understand their activity, and communicate with their physiotherapist. Give physiotherapists a clear overview of their linked patients and recorded sessions. Movement estimates and feedback support monitoring and discussion; they are not a diagnosis and do not replace professional medical advice.
+
+IMPLEMENTATION REALITY - DO NOT DESIGN FEATURES AS IF THEY ALREADY EXIST
+- This is a browser-based HTML/CSS/JavaScript frontend with PHP endpoints and MySQL storage.
+- Patient exercise tracking uses a webcam and MediaPipe Pose in the browser. The design must include explicit camera permission and framing states.
+- The current exercise classifier is a per-frame feed-forward MLP loaded from JSON model/scaler files through a PHP inference endpoint. It is not an LSTM or a medical-grade AI system.
+- The currently configured exercises are Squats, Lunges, and Knee Extensions only.
+- Current session measurements include knee/hip angles, repetition and set counts, form/quality estimates, feedback cues, session history, and progress summaries.
+- The supported user roles are Patient and Physiotherapist. Patients can be linked to a physiotherapist through a clinician code. The clinician can see linked patients and their saved activity.
+- Messaging is patient-to-linked-clinician communication.
+- Do not invent treatment plans, clinician-assigned exercise workflows, appointment booking, video calls, notifications, prescriptions, wearable integration, billing, diagnosis, medical records, or extra exercises.
+- Do not claim that camera video is saved, uploaded, encrypted end-to-end, or never leaves the device unless those claims are separately verified.
+- Do not expose real patient data, real credentials, or personal health information in mockups. Use clearly fictional sample names and values.
+
+DESIGN DIRECTION
+Create a calm, trustworthy, modern clinical product that feels supportive rather than intimidating or gamified. Prioritize readable information, obvious next actions, and patient dignity.
+
+Use the existing product's visual direction as a starting point:
+- Light cool-neutral page background, white cards, thin cool-gray borders, and restrained soft shadows.
+- Burgundy/coral red as the primary action and active-navigation accent (approximately #B84452, with a darker hover tone approximately #963641).
+- Muted blue-gray as a secondary accent (approximately #657F9D).
+- Dark navy text (approximately #1E2C40), muted slate secondary text (approximately #52647B).
+- Calm green for positive states and amber for caution. Never communicate status with color alone.
+- Rounded cards and controls; consistent moderate spacing; subtle rather than decorative gradients.
+- Use a clean sans-serif similar to Segoe UI/system UI. Keep the product logo in the existing brand position.
+- Maintain one coherent component system across patient and physiotherapist spaces.
+
+FIGMA FILE STRUCTURE
+Create pages or clearly separated sections named:
+1. Foundations - colors, typography, spacing, grid, elevation, icon treatment, chart styles, focus states.
+2. Shared Components - sidebar, top bar, buttons, form controls, cards, badges, tables, dialogs, empty states, loading states, alerts, charts.
+3. Patient Experience - landing, sign in, registration, dashboard, exercises, live session, progress, messages, settings.
+4. Physiotherapist Experience - dashboard, patient list, patient details, messages, settings.
+5. Responsive and States - mobile/tablet variants and important loading, error, empty, permission, paused, and completed states.
+
+Design desktop-first screens at 1440 px wide and mobile screens around 390 px wide. Also show tablet behavior around 768 px. Use Auto Layout, sensible constraints, named reusable components, and variants for state changes. Keep layouts implementable as responsive web pages rather than native mobile app screens.
+
+SHARED APPLICATION SHELL
+- Authenticated pages use a persistent left sidebar on desktop, with logo/brand, role-appropriate navigation, active-page state, and a user identity area/logout at the bottom.
+- Use a top bar with page title, concise context where useful, and relevant status or account controls.
+- On smaller screens, collapse the sidebar into a clear accessible menu/drawer; do not make the user horizontally scroll to reach primary actions.
+- Keep content aligned to a consistent maximum width with useful whitespace.
+- Ensure focus, hover, pressed, disabled, selected, loading, and error states are visually defined.
+
+SCREENS TO DESIGN
+
+A. Public landing page (index.html)
+- Brand-led introduction to lower-body rehabilitation monitoring.
+- Clear primary calls to action for sign in and creating an account.
+- Explain the workflow in simple steps: use a supported device, camera pose tracking, movement analysis, review session activity with a clinician.
+- Explain the patient and physiotherapist value without medical efficacy claims.
+- State that movement monitoring does not replace professional care.
+
+B. Authentication
+1. Sign in (login.html): patient/physiotherapist role selection, email, password with show/hide, submit, validation/error feedback, and link to account creation/password help.
+2. Create account (register.html): role selection. Patient fields include name, email, condition, optional clinician code, password, and confirmation. Physiotherapist fields include name, email, clinic, specialization, password, and confirmation. Show field errors and submission feedback.
+3. Password help (forgot.html): provide a design that is consistent with the existing password-help route; do not promise an email reset flow beyond what has been verified in the implementation.
+
+C. Patient dashboard (dashboard.html)
+- Friendly greeting and concise recovery-support message.
+- Prominent Start a Session action and most recent session summary.
+- Summary metrics for weekly streak, weekly repetitions, average quality estimate, and sessions completed.
+- Exercise overview and weekly progress chart with a quality/repetition metric choice.
+- Recent session history.
+- Include realistic no-data/first-session states; avoid fabricated achievements or clinical risk judgements.
+
+D. Patient exercises (exercises.html)
+- Three configured exercise cards only: Squats, Lunges, Knee Extensions.
+- Show available description/instructions and existing targets where relevant; distinguish targets from actual completed activity.
+- Clear action to begin a session and a helpful empty state if content has not loaded.
+- Do not add unconfigured exercises or imply the clinician can assign a custom plan.
+
+E. Live exercise session (session.html) - most important interaction design
+Create a clear, calm active-exercise interface that works with a webcam and is readable while the patient is moving.
+- Before camera: permission/request state, simple setup instructions to position the device and frame the lower body, and a visible Enable Camera button.
+- Camera denied/unavailable state with non-blaming instructions and a safe route back.
+- Camera active but session not started state; explain that tracking starts only after the user begins.
+- Active session: large video area with pose skeleton overlay, discreet joint-angle labels, connection/tracking state, session timer, selected exercise, repetition count/target, set progress, form/quality estimate, rhythm visualization, and concise real-time movement cue.
+- Camera and exercise selection controls, plus clear Start, Pause/Resume, and End Session actions with confirmation where ending could lose expected work.
+- Paused, poor tracking/landmarks unavailable, model inference unavailable, and save failure states. Never imply success when data saving fails.
+- Completed/partial summary: duration, exercise, total reps, sets, average quality/form estimates, and return-to-dashboard/progress actions.
+- Keep safety note visible but unobtrusive: stop if pain, dizziness, or unusual discomfort occurs; follow clinician instructions. Clarify that feedback is an estimate, not diagnosis.
+- Make controls large, high contrast, keyboard accessible, and easy to reach. Avoid crowding controls over camera content.
+
+F. Patient progress (progress.html)
+- Clear summary cards and legible history/trend visualizations for stored activity and quality estimates.
+- Provide understandable labels, units, date range/context, and an accessible text alternative to charts.
+- Include empty, loading, and unavailable-data states. Do not imply medical improvement from a small activity trend.
+
+G. Messages (messages.html)
+- A conversation view for the patient's linked physiotherapist or a clinician's linked patient, with role-appropriate participant selector.
+- Distinguish sent/received messages, readable timestamps, empty conversation, loading, and send-error states.
+- Use fictional example messages only; do not insert mock clinical advice that could be mistaken for real guidance.
+
+H. Settings (settings.html)
+- Profile details and save feedback.
+- Available preference: real-time feedback prompts.
+- Session reminders and dark mode are currently disabled/coming soon; show disabled states rather than functioning controls.
+- Keep patient and physiotherapist account layouts consistent.
+
+I. Physiotherapist dashboard (clinician.html)
+- Clinician link code, with copy affordance if appropriate as a design proposal but make it clear that only display is guaranteed by the current interface.
+- Summary metrics for linked patients, sessions today, average adherence, and average quality estimate.
+- Searchable/filterable linked-patient list, movement observations, live-session summary area, and weekly movement-quality chart.
+- Use neutral language and clear data recency. Do not label estimates as diagnoses or high-risk predictions.
+- Provide empty state when no patients or sessions are present.
+
+J. Physiotherapist patients list (clinician-patients.html)
+- Search/filter linked patients and show available recent session/adherence/quality summary.
+- Clear navigation to an individual patient details view.
+- Include no patients, no search results, loading, and error states.
+
+K. Physiotherapist patient details (clinician-patient.html)
+- Patient identity and saved session/progress history for that linked patient.
+- Clearly distinguish recorded measurements/estimates from clinical conclusions.
+- Include a direct path to the permitted message conversation.
+- Include empty and loading states.
+
+KEY INTERACTIONS / PROTOTYPE LINKS
+- Landing -> Sign in / Create account.
+- Sign in -> role-appropriate dashboard.
+- Patient dashboard -> Exercises / Live Session / Progress / Messages / Settings.
+- Exercise card -> live session with that exercise selected.
+- Session flow -> camera permission -> tracking -> start -> pause/resume -> end -> summary -> progress.
+- Physiotherapist dashboard -> patient list -> patient details -> messages.
+- Sidebar links preserve the role-appropriate navigation.
+- Provide visible feedback for form validation, camera permission, empty data, save errors, and success.
+- If an interaction is not supported by the current application, mark it as a future concept instead of presenting it as an implemented behavior.
+
+ACCESSIBILITY AND CONTENT
+- Meet WCAG AA contrast as a design target; do not rely on color alone for scores, status, or alerts.
+- Use semantic headings, descriptive control labels, visible keyboard focus, touch targets of about 44 px, and chart labels that do not require color interpretation.
+- Use plain language, short supportive cues, large numerals for active rep counts, and non-judgmental copy.
+- Avoid autoplay sound, flashing effects, pressure-inducing streak language, or language that blames a patient.
+- Include desktop, tablet, and mobile layouts plus loading, empty, validation, error, permission-denied, paused, and completed states for the key flows.
+
+DELIVERABLE
+Produce a polished, implementation-aware Figma design system and connected prototype for the screens above. Keep the visual language consistent with the existing light clinical/burgundy interface, use only capabilities in the implementation reality section as live product functionality, and annotate any proposed future behavior as such.

@@ -1,0 +1,493 @@
+AI TELEREHABILITATION SYSTEM
+PROJECT FILE ROLES AND SUPERVISOR GUIDE
+
+Purpose of this guide
+---------------------
+This document explains the role of the project's source files, how the
+application components work together, what is currently implemented, and what
+should be described as a limitation rather than a completed feature. It is
+intended to help the project team explain the system accurately and show how
+each technical layer contributes to the user experience.
+
+
+1. PROJECT PURPOSE AND BOUNDARIES
+---------------------------------
+This project is a web application for lower-body rehabilitation monitoring.
+It provides separate patient and physiotherapist workflows. Patients can
+review exercises, run a camera-assisted session, review activity, communicate
+with a linked physiotherapist, and manage account settings. Physiotherapists
+can review linked patients and their recorded activity.
+
+The application supports monitoring and discussion with a physiotherapist. It
+does not diagnose an injury, prescribe treatment, or replace professional
+medical care. Measurements and feedback are estimates and should not be
+presented as clinically validated.
+
+The configured exercises are:
+- Squats (squat)
+- Lunges (lunge)
+- Knee Extensions (knee-ext)
+
+The current classifier is a per-frame feed-forward MLP (multilayer perceptron).
+It is not an LSTM sequence model. The application does not currently implement
+sit-to-stand or leg-raise exercises, appointments, video calls, wearable
+integration, or an automated clinical treatment plan.
+
+
+2. HOW THE SYSTEM FITS TOGETHER
+-------------------------------
+The user interface is written in HTML, CSS, and browser JavaScript. PHP handles
+authentication, authorization, database operations, profile image delivery,
+exercise information, session storage, and model inference. MySQL stores user
+accounts, clinician-patient relationships, exercise definitions, session
+summaries, sampled movement measurements, messages, progress snapshots, and
+training-sample records.
+
+Live exercise data flow:
+1. The patient signs in and opens the session page.
+2. The browser requests camera permission. MediaPipe Pose runs in the browser
+   and detects body landmarks from the camera stream.
+3. js/session.js derives movement values, including knee and hip angles,
+   torso lean, and stance width. It also tracks repetition state and displays
+   local movement cues.
+4. A six-value feature vector can be sent to php/infer_model.php. The PHP
+   endpoint loads the scaler and MLP weights exported as JSON and returns an
+   exercise label and probabilities.
+5. Authenticated requests to php/session_api.php create the session, save
+   sampled measurements, and finish the session. MySQL stores the summary and
+   daily progress snapshot. The application does not upload or persist the
+   webcam video as part of this flow.
+6. Patient and physiotherapist pages request authorized summaries and display
+   recorded history, progress, and linked-patient information.
+
+Account and photo flow:
+- Registration and sign-in use PHP sessions and password hashes.
+- js/main.js loads the authenticated user's profile for shared page headers.
+- Settings submit profile data to php/me.php. Profile photos are validated
+  for supported image type, file size, and image dimensions before storage.
+- php/profile_image.php checks the signed-in viewer and, for a patient image,
+  verifies that the requesting physiotherapist is linked to that patient.
+- uploads/profile/.htaccess prevents direct Apache access to stored image files.
+
+Messaging flow:
+- js/messages.js calls the message actions in php/session_api.php.
+- The PHP API checks the clinician-patient relationship before returning or
+  sending a conversation. Message records are stored in MySQL.
+
+
+3. PROJECT FILE MAP
+-------------------
+
+A. Application pages in the project root
+
+index.html
+  Public landing page. Introduces the product and links visitors to the
+  authentication and application journeys.
+
+login.html
+  Sign-in page. Submits the selected role, email, and password to
+  php/login.php.
+
+register.html
+  Account creation form for patients and physiotherapists. Patient registration
+  can include a clinician code; the backend validates and links the accounts.
+
+forgot.html
+  Password-help screen. A user interface page only; the project does not
+  currently include a complete email-based password-reset backend.
+
+dashboard.html
+  Patient overview. Shows current account information, recent activity, and
+  progress-related summaries, and provides navigation to patient features.
+
+exercises.html
+  Patient exercise library. The exercise data is loaded from
+  php/exercises_api.php and reflects the exercises configured in MySQL.
+
+session.html
+  Live patient exercise screen. Loads MediaPipe browser scripts, displays the
+  camera/pose interface, and loads js/session.js.
+
+progress.html
+  Patient progress and exercise-history screen. Uses shared patient data and
+  charts to summarize saved activity.
+
+messages.html
+  Conversation interface for a patient or physiotherapist to message an
+  authorized linked user.
+
+settings.html
+  Account settings screen. Supports profile details, photo selection, preview,
+  save, and removal, plus the available preferences.
+
+clinician.html
+  Physiotherapist overview with clinician-specific summary information and
+  patient activity.
+
+clinician-patients.html
+  Searchable/filterable list of patients linked to the signed-in clinician.
+
+clinician-patient.html
+  Detail view for one patient, including available session and progress
+  summaries. The selected patient ID is passed in the URL.
+
+
+B. Stylesheets in css/
+
+main.css
+  Shared base styling, layout foundations, and design variables used throughout
+  the application.
+
+app-polish.css
+  Shared visual refinements and responsive overrides layered on top of the
+  base and page styles. It includes shared avatar/photo presentation and
+  responsive improvements.
+
+auth.css
+  Layout and styling for login, registration, and password-help pages.
+
+dashboard.css
+  Shared authenticated application shell and dashboard-style layouts, including
+  navigation/sidebar, cards, and responsive behavior.
+
+landing.css
+  Landing page-specific typography, hero section, and promotional layout.
+
+session.css
+  Live exercise session-specific layout and visual treatment for the camera,
+  measurements, controls, and feedback.
+
+clinician.css
+  Physiotherapist-specific views, patient list, and detail-page components.
+
+
+C. Browser JavaScript in js/
+
+main.js
+  Shared browser behavior: navigation controls, common page setup, current-user
+  loading, header/avatar updates, and photo-aware avatar rendering.
+
+auth.js
+  Client-side authentication form behavior, role selection, password visibility,
+  basic validation, and display of error messages returned through the URL.
+  Server-side validation remains the responsibility of PHP.
+
+dashboard.js
+  Patient dashboard data loading, account-settings save behavior, photo preview
+  and removal controls, preference persistence, progress summaries/charts, and
+  exercise-library loading.
+
+session.js
+  Main live-session controller. Manages camera and MediaPipe initialization,
+  pose landmark processing, derived movement metrics, repetition and set
+  tracking, timer and controls, feedback display, model requests, sampled frame
+  saves, and session completion.
+
+messages.js
+  Loads the signed-in user and conversation partner, renders messages, fetches
+  conversation history, and submits new messages.
+
+clinician.js
+  Physiotherapist page behavior: clinician data loading, patient list
+  rendering, search and adherence filters, dashboard charts, and individual
+  patient detail/progress rendering.
+
+
+D. PHP backend in php/
+
+config.php
+  Shared backend foundation. Defines MySQL connection settings, creates a PDO
+  connection, starts configured PHP sessions, and supplies JSON-response and
+  authentication helpers. Local database credentials are currently configured
+  here; deployment credentials should be managed securely outside source code.
+
+login.php
+  Validates sign-in input, checks the stored password hash and selected role,
+  creates the authenticated PHP session, and redirects by role.
+
+register.php
+  Validates registration, hashes the password, creates patient or clinician
+  accounts, generates a clinician code, and optionally links a patient to a
+  clinician.
+
+logout.php
+  Clears the current PHP session and redirects the user to the sign-in page.
+
+me.php
+  Authenticated current-user and profile API. Returns user/profile and relevant
+  dashboard data, saves profile and preference changes, and handles validated
+  profile photo upload/removal. It includes a compatibility migration for
+  profile/settings columns on older local databases.
+
+profile_image.php
+  Streams stored profile images only after checking authentication and
+  authorization. A physiotherapist may view a patient's image only when the
+  patient is linked to that physiotherapist.
+
+clinician_api.php
+  Clinician-only API for linked-patient lists, patient details, progress,
+  adherence, and patient assignment. It checks clinician role and patient
+  relationships before exposing patient information.
+
+exercises_api.php
+  Authenticated API for reading exercise definitions and targets from MySQL.
+
+session_api.php
+  Authenticated API for starting and ending patient exercise sessions, saving
+  sampled movement frames, returning progress, and retrieving/sending messages.
+  It verifies session ownership and linked conversation relationships.
+
+infer_model.php
+  PHP inference adapter. Reads the JSON model/scaler files, orders and
+  standardizes six features, applies the MLP weights, and returns a predicted
+  exercise label with probability values.
+
+ai_api.php
+  Provides rule-based movement feedback and can store a session-level
+  ai_training_samples record. The "train" action records a sample; it does not
+  retrain or update the deployed classifier.
+
+healthz.php
+  Lightweight PHP/database health check for local diagnostics.
+
+seed.php
+  Local-development helper for inserting sample accounts and a sample
+  clinician-patient relationship. It contains development-only account values
+  and must not be exposed or used as a production account-management tool.
+
+test_infer_cli.php
+  Command-line PHP check of the JSON MLP inference math. It is a diagnostic
+  helper, not a public application route.
+
+
+E. Database, model, tests, and supporting files
+
+schema.sql
+  Creates the rehabiai_db database and core tables: users,
+  clinician_patients, exercises, sessions, session_frames, messages,
+  progress_snapshots, and ai_training_samples. It also inserts configured
+  exercise definitions and local sample data. Review it before importing into
+  any database that already contains data.
+
+python/train_model.py
+  Loads the labeled feature CSV, standardizes six features, trains an
+  scikit-learn MLP, prints evaluation metrics, and exports classifier weights
+  and scaler metadata to JSON. If the CSV is missing, this script generates
+  synthetic example rows. Results from synthetic rows are not evidence of
+  clinical or real-world accuracy.
+
+python/infer_model.py
+  Python implementation of the exported MLP inference path, useful for
+  checking the model artifacts independently from the PHP application.
+
+python/exercise_landmarks.csv
+  Labeled feature rows used by the training helper. Its presence does not prove
+  the data is clinically validated or representative; document its provenance
+  and validation before making accuracy claims.
+
+python/model/pose_classifier.json
+  Exported MLP weights, layer metadata, and class labels consumed by the PHP and
+  Python inference implementations.
+
+python/model/pose_scaler.json
+  Feature ordering and standardization means/scales that must match the model
+  and input feature calculations.
+
+python/test_infer_py.py
+  Python model smoke/integration check using representative feature vectors.
+
+python/integration_test.py
+  Python-level inference integration check against expected sample labels.
+
+python/e2e_test.py
+  HTTP workflow helper that attempts login, starts a session, saves sample
+  frames, calls inference, and ends the session. It requires a running PHP
+  server, imported database, and Python requests package. Before relying on it,
+  reconcile its seeded-account password with the current local seed/schema and
+  inspect any created session records. It is not evidence that the full suite
+  passes unless it has actually been run successfully.
+
+python/requirements.txt
+  Python training and inference dependencies, including NumPy, pandas, and
+  scikit-learn. The HTTP end-to-end helper also imports requests, which is not
+  listed in this requirements file.
+
+python/README.md
+  Python training/inference quick-start notes.
+
+architecture.svg
+  Visual system/data-flow diagram. The source code and this guide describe the
+  authoritative current implementation; the diagram should be kept in sync
+  whenever architecture changes.
+
+PROJECT_STATUS.Rmd
+  Longer R Markdown status report covering project scope, architecture,
+  workflows, verification, and known limitations. It can be rendered to HTML
+  when the R Markdown toolchain is installed.
+
+README.md
+  Main project overview, current implementation notes, local setup, profile
+  photo behavior, and basic validation commands.
+
+project_overview_and_working_guide.txt
+  Earlier high-level project overview and working guide. It complements this
+  file with orientation and user journeys.
+
+figma_design_prompt.txt
+  Design prompt describing the desired interface and page requirements for
+  Figma or a design-generation workflow. It is a design reference, not runtime
+  application code.
+
+LICENSE
+  Repository license and reuse terms.
+
+package.json
+  Node project metadata and JavaScript lint scripts. The application itself is
+  not bundled with a Node-based frontend build system.
+
+package-lock.json
+  Locked versions for Node development dependencies, primarily ESLint.
+
+.eslintrc.json
+  ESLint rules/configuration used by the JavaScript lint script.
+
+.eslintignore
+  Paths excluded from ESLint.
+
+images/logo.svg
+  Local vector logo used by the HTML pages.
+
+uploads/profile/.htaccess
+  Apache access rule that prevents direct requests to stored profile images;
+  the authenticated PHP image endpoint serves permitted files instead.
+
+
+4. DATABASE TABLES AND WHAT THEY REPRESENT
+-------------------------------------------
+users
+  Account identity, role, password hash, contact/profile fields, preferences,
+  clinician code, and patient condition or clinic details.
+
+clinician_patients
+  Relationship between a physiotherapist and an assigned patient. This
+  relationship is also an authorization boundary for clinician data and
+  conversations.
+
+exercises
+  Exercise catalogue, slugs, descriptions, and target repetitions/sets.
+
+sessions
+  One patient exercise session, including start/end time, counts, status, and
+  aggregate quality/form estimates.
+
+session_frames
+  Sampled measurements and feedback during a session. These are not raw camera
+  frames or stored webcam recordings.
+
+progress_snapshots
+  Daily patient aggregates used by progress and adherence summaries.
+
+messages
+  Text conversation records between linked patients and physiotherapists.
+
+ai_training_samples
+  Session-level values and feedback labels recorded by the AI API's train
+  action. These records are not automatically fed back into the offline Python
+  model-training process.
+
+
+5. IMPORTANT ENGINEERING AND PRESENTATION NOTES
+-----------------------------------------------
+- Explain the system as a monitoring prototype, not a diagnostic or treatment
+  system.
+- Distinguish client-side validation from server-side validation. PHP is the
+  authority for authentication, permissions, persistence, and upload checks.
+- Explain why clinician-patient relationship checks matter: they protect
+  patient records, messages, and profile images.
+- Profile photo uploads accept JPG, PNG, or WebP up to 5 MB, with additional
+  server-side image checks. PHP needs write access to uploads/profile/.
+- The web application requires a PHP/MySQL server. Do not open the HTML files
+  directly with file://. Camera access on a shared/public deployment requires
+  HTTPS and user permission; localhost is a special browser-secure context.
+- The browser loads MediaPipe from a CDN, and chart pages load Chart.js from a
+  CDN. Internet access may therefore be needed for those libraries.
+- The MLP predicts from a single feature vector at a time. It does not analyze
+  a time sequence using an LSTM.
+- Training outputs depend on the feature CSV and its provenance. Synthetic
+  generated rows are illustrative and cannot support real-world accuracy
+  claims.
+- The PHP "train" action stores feedback/training samples; model retraining is
+  a separate Python workflow.
+- Settings preferences include items labeled as coming soon. Do not present
+  disabled options as complete functionality.
+- The password-help page does not currently have a complete password-reset
+  backend.
+- The Python end-to-end helper has a known seeded-password mismatch and a
+  dependency omission (requests); repair and validate it before using it as a
+  formal test result.
+- Local test accounts and database credentials are for development only.
+  Replace development configuration and remove test data before deployment.
+
+
+6. HOW TO EXPLAIN THE PROJECT TO A SUPERVISOR
+---------------------------------------------
+Suggested short explanation:
+
+"Our project is a browser-based telerehabilitation monitoring prototype for
+patients and physiotherapists. The frontend is HTML, CSS, and JavaScript; PHP
+provides authenticated APIs; and MySQL stores accounts, linked-care
+relationships, exercise sessions, sampled movement measures, progress, and
+messages. During a patient session, MediaPipe detects pose landmarks in the
+browser. JavaScript derives movement features and repetition estimates, while
+a PHP adapter can classify a six-feature sample using an exported MLP model.
+The system saves summaries and sampled measurements so patients and their
+linked physiotherapists can review activity. We describe the results as
+estimates for monitoring, not diagnoses or clinically validated advice."
+
+When presenting an implementation decision, explain:
+1. Which user need the feature serves.
+2. Which page and JavaScript controller implement the interaction.
+3. Which PHP endpoint validates and processes the request.
+4. Which MySQL table stores or supplies the data.
+5. What authorization check protects that data.
+6. How the feature was tested and what the test does not prove.
+
+Example: "A clinician can see a patient's profile photo because the clinician
+API only returns photos for linked patients, and the image endpoint checks
+that relationship again before streaming the image. This prevents a photo URL
+from becoming unrestricted public access."
+
+
+7. LOCAL SETUP AND CHECKS
+-------------------------
+1. Install PHP and MySQL (for example through XAMPP) and place the project
+   under the web server document root.
+2. Import schema.sql into MySQL. Do not import it blindly over an existing
+   database containing important information.
+3. Check php/config.php for local connection settings.
+4. Start Apache and MySQL and open the project through its HTTP URL.
+5. Grant camera permission on the session page when testing camera features.
+6. Run "npm run lint" for JavaScript linting.
+7. Run PHP syntax checks on changed endpoints, for example:
+   C:\xampp\php\php.exe -l php\session_api.php
+8. Run the model check with the configured Python environment:
+   .venv\Scripts\python.exe python\integration_test.py
+9. Run the HTTP end-to-end helper only after fixing its credential/dependency
+   assumptions, starting a local PHP server, and confirming the correct test
+   database is in use.
+
+The directories node_modules/ and .venv/ are installed development
+dependencies/environments rather than application source. They may be
+recreated from package and Python dependency files where the required tools
+are available. The .git/ directory is version-control metadata, not an
+application feature.
+
+
+8. DEFINITION OF A SUCCESSFUL FEATURE
+-------------------------------------
+A feature is complete only when its visible interface is connected to the
+correct backend behavior, the backend validates the request and enforces
+authorization, stored data has the expected meaning, errors are visible to the
+user or logs, and focused checks have verified both the normal and relevant
+failure paths. A screen or model artifact alone does not establish that the
+end-to-end feature is complete.

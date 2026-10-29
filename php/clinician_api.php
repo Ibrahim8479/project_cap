@@ -20,7 +20,7 @@ switch ($action) {
     case 'patients':
     case 'list_patients':
         $stmt = $db->prepare('
-            SELECT u.id, u.first_name, u.last_name, u.condition_type, u.created_at,
+            SELECT u.id, u.first_name, u.last_name, u.condition_type, u.created_at, u.profile_picture,
                    COALESCE(ps.avg_quality, 0) AS avg_quality,
                    COALESCE(ps.sessions_done, 0) AS sessions_done,
                    COALESCE(ps.active_days, 0) AS active_days,
@@ -40,7 +40,15 @@ switch ($action) {
             ORDER BY u.first_name
         ');
         $stmt->execute(['in_progress', $clinician_id]);
-        jsonResponse(['patients' => $stmt->fetchAll()]);
+        $patients = $stmt->fetchAll();
+        foreach ($patients as &$patient) {
+            $patient['profile_picture_url'] = $patient['profile_picture']
+                ? 'php/profile_image.php?user_id=' . (int)$patient['id']
+                : null;
+            unset($patient['profile_picture']);
+        }
+        unset($patient);
+        jsonResponse(['patients' => $patients]);
 
     case 'patient_detail':
         $patient_id = (int)($_GET['patient_id'] ?? 0);
@@ -52,9 +60,15 @@ switch ($action) {
         if (!$check->fetch()) jsonResponse(['error' => 'Patient not found'], 404);
 
         // Patient info
-        $pStmt = $db->prepare('SELECT id, first_name, last_name, condition_type, created_at FROM users WHERE id = ?');
+        $pStmt = $db->prepare('SELECT id, first_name, last_name, condition_type, created_at, profile_picture FROM users WHERE id = ?');
         $pStmt->execute([$patient_id]);
         $patient = $pStmt->fetch();
+        if ($patient) {
+            $patient['profile_picture_url'] = $patient['profile_picture']
+                ? 'php/profile_image.php?user_id=' . (int)$patient['id']
+                : null;
+            unset($patient['profile_picture']);
+        }
 
         // Recent sessions
         $sStmt = $db->prepare('

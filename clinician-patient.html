@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patient Details - AI Telerehabilitation</title>
   <link rel="stylesheet" href="css/main.css?v=20261023-2" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261023-2" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261028-1" />
   <link rel="stylesheet" href="css/clinician.css?v=20261023-2" />
-  <link rel="stylesheet" href="css/app-polish.css?v=11" />
+  <link rel="stylesheet" href="css/app-polish.css?v=16" />
 </head>
 <body class="app-page">
   <aside class="sidebar" id="sidebar">
@@ -36,7 +36,7 @@
 
   <main class="main-content">
     <header class="topbar">
-      <button class="hamburger" id="sidebarToggle">☰</button>
+      <button class="hamburger" id="sidebarToggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">☰</button>
       <div class="topbar-left">
         <h1 class="page-title">Patient Details</h1>
         <span class="text-muted" style="font-size:.875rem;">Exercise history, adherence, and movement progress</span>
@@ -51,6 +51,7 @@
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-card-label">Patient</div>
+          <div class="user-avatar patient-profile-avatar" id="patientProfileAvatar" aria-label="Patient profile photo"></div>
           <div class="stat-card-num">Select a patient</div>
           <div class="text-muted" style="font-size:.8rem;">Patient details appear here</div>
         </div>
@@ -100,8 +101,8 @@
     </div>
   </main>
 
-  <script src="js/main.js?v=5"></script>
+  <script src="js/main.js?v=7"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="js/clinician.js?v=7"></script>
+  <script src="js/clinician.js?v=10"></script>
 </body>
 </html>

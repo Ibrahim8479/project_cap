@@ -16,7 +16,9 @@ $uid = (int)$_SESSION['user_id'];
 // Older local databases may predate profile and preference fields in schema.sql.
 $settingsColumns = [
     'phone' => 'VARCHAR(50) NULL',
+    'profile_picture' => 'VARCHAR(255) NULL',
     'receive_reminders' => 'TINYINT(1) NOT NULL DEFAULT 1',
+    'reminder_time' => "TIME NOT NULL DEFAULT '18:00:00'",
     'realtime_feedback' => 'TINYINT(1) NOT NULL DEFAULT 1',
     'dark_mode' => 'TINYINT(1) NOT NULL DEFAULT 0',
 ];
@@ -27,51 +29,124 @@ foreach ($settingsColumns as $column => $definition) {
     }
 }
 
-$body = json_decode(file_get_contents('php://input'), true) ?? [];
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+$body = stripos($contentType, 'application/json') !== false
+    ? (json_decode(file_get_contents('php://input'), true) ?? [])
+    : $_POST;
+$profileImagePath = null;
+$removeProfileImage = filter_var($body['remove_profile_picture'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture'])) {
+    $file = $_FILES['profile_picture'];
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(['error' => 'The photo upload failed. Please choose another image and try again.'], 400);
+    }
+    if ($file['size'] > 5 * 1024 * 1024) {
+        jsonResponse(['error' => 'Choose an image smaller than 5 MB.'], 413);
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($file['tmp_name']);
+    $image = @getimagesize($file['tmp_name']);
+    $allowedTypes = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+    if (
+        !$image ||
+        !isset($allowedTypes[$mime]) ||
+        ($image['mime'] ?? '') !== $mime ||
+        $image[0] < 1 ||
+        $image[1] < 1 ||
+        $image[0] > 6000 ||
+        $image[1] > 6000 ||
+        $image[0] * $image[1] > 20000000
+    ) {
+        jsonResponse(['error' => 'Use a valid JPG, PNG, or WebP image with dimensions up to 6000 × 6000 pixels.'], 415);
+    }
+
+    $uploadDirectory = __DIR__ . '/../uploads/profile';
+    if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0750, true) && !is_dir($uploadDirectory)) {
+        jsonResponse(['error' => 'Profile photo storage is unavailable. Please contact the site administrator.'], 500);
+    }
+    $profileImagePath = bin2hex(random_bytes(24)) . '.' . $allowedTypes[$mime];
+    if (!move_uploaded_file($file['tmp_name'], $uploadDirectory . '/' . $profileImagePath)) {
+        jsonResponse(['error' => 'The photo could not be saved. Check server storage permissions and try again.'], 500);
+    }
+    $removeProfileImage = false;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $first_name = trim($body['first_name'] ?? '');
-    $last_name = trim($body['last_name'] ?? '');
-    $email = trim($body['email'] ?? '');
-    $phone = trim($body['phone'] ?? '');
+    $first_name = trim((string)($body['first_name'] ?? ''));
+    $last_name = trim((string)($body['last_name'] ?? ''));
+    $email = trim((string)($body['email'] ?? ''));
+    $phone = trim((string)($body['phone'] ?? ''));
+    $oldPhotoStmt = $db->prepare('SELECT profile_picture FROM users WHERE id = ? LIMIT 1');
+    $oldPhotoStmt->execute([$uid]);
+    $oldProfileImagePath = $oldPhotoStmt->fetchColumn() ?: null;
 
     // If profile fields are provided, validate and update
     if ($first_name || $last_name || $email) {
         if (!$first_name || !$last_name || !$email) {
-            echo json_encode(['error' => 'First name, last name, and email are required.']);
-            exit;
+            if ($profileImagePath) unlink(__DIR__ . '/../uploads/profile/' . $profileImagePath);
+            jsonResponse(['error' => 'First name, last name, and email are required.'], 400);
         }
 
         $check = $db->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
         $check->execute([$email, $uid]);
         if ($check->fetch()) {
-            echo json_encode(['error' => 'That email address is already registered.']);
-            exit;
+            if ($profileImagePath) unlink(__DIR__ . '/../uploads/profile/' . $profileImagePath);
+            jsonResponse(['error' => 'That email address is already registered.'], 409);
         }
-
-        $stmt = $db->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?');
-        $stmt->execute([$first_name, $last_name, $email, $phone, $uid]);
     }
 
     // Preferences: optionally update preference columns on the users table
     $prefs = $body['prefs'] ?? [];
     $prefReceive = isset($body['receive_reminders']) ? (bool)$body['receive_reminders'] : (isset($prefs['receive_reminders']) ? (bool)$prefs['receive_reminders'] : null);
+    $reminderTime = $body['reminder_time'] ?? null;
+    if ($reminderTime !== null && (!is_string($reminderTime) || !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $reminderTime))) {
+        jsonResponse(['error' => 'Choose a valid reminder time.'], 400);
+    }
     $prefRealtime = isset($body['realtime_feedback']) ? (bool)$body['realtime_feedback'] : (isset($prefs['realtime_feedback']) ? (bool)$prefs['realtime_feedback'] : null);
     $prefDark = isset($body['dark_mode']) ? (bool)$body['dark_mode'] : (isset($prefs['dark_mode']) ? (bool)$prefs['dark_mode'] : null);
 
     $updates = [];
     $params = [];
+    if ($first_name || $last_name || $email) {
+        $updates[] = 'first_name = ?';
+        $updates[] = 'last_name = ?';
+        $updates[] = 'email = ?';
+        $updates[] = 'phone = ?';
+        array_push($params, $first_name, $last_name, $email, $phone);
+    }
+    if ($profileImagePath) {
+        $updates[] = 'profile_picture = ?';
+        $params[] = $profileImagePath;
+    } elseif ($removeProfileImage) {
+        $updates[] = 'profile_picture = NULL';
+    }
     if ($prefReceive !== null) { $updates[] = 'receive_reminders = ?'; $params[] = $prefReceive ? 1 : 0; }
+    if ($reminderTime !== null) { $updates[] = 'reminder_time = ?'; $params[] = $reminderTime . ':00'; }
     if ($prefRealtime !== null) { $updates[] = 'realtime_feedback = ?'; $params[] = $prefRealtime ? 1 : 0; }
     if ($prefDark !== null) { $updates[] = 'dark_mode = ?'; $params[] = $prefDark ? 1 : 0; }
     if (count($updates)) {
         $params[] = $uid;
-        $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ?';
-        $db->prepare($sql)->execute($params);
+        try {
+            $db->prepare('UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ?')->execute($params);
+        } catch (PDOException $err) {
+            if ($profileImagePath) unlink(__DIR__ . '/../uploads/profile/' . $profileImagePath);
+            throw $err;
+        }
+    }
+
+    if (($profileImagePath || $removeProfileImage) && $oldProfileImagePath) {
+        $oldPath = __DIR__ . '/../uploads/profile/' . basename($oldProfileImagePath);
+        if (is_file($oldPath)) unlink($oldPath);
     }
 }
 
-$uStmt = $db->prepare('SELECT id, first_name, last_name, email, role, condition_type, clinic_name, clinician_code, phone FROM users WHERE id = ? LIMIT 1');
+$uStmt = $db->prepare('SELECT id, first_name, last_name, email, role, condition_type, clinic_name, clinician_code, phone, profile_picture FROM users WHERE id = ? LIMIT 1');
 $uStmt->execute([$uid]);
 $user = $uStmt->fetch();
 
@@ -80,14 +155,19 @@ if (!$user) {
     exit;
 }
 
-$pstmt = $db->prepare('SELECT receive_reminders, realtime_feedback, dark_mode FROM users WHERE id = ? LIMIT 1');
+$pstmt = $db->prepare('SELECT receive_reminders, reminder_time, realtime_feedback, dark_mode FROM users WHERE id = ? LIMIT 1');
 $pstmt->execute([$uid]);
 $prefs = $pstmt->fetch();
 $user['preferences'] = [
     'receive_reminders' => (bool)($prefs['receive_reminders'] ?? 1),
+    'reminder_time' => substr((string)($prefs['reminder_time'] ?? '18:00:00'), 0, 5),
     'realtime_feedback' => (bool)($prefs['realtime_feedback'] ?? 1),
     'dark_mode' => (bool)($prefs['dark_mode'] ?? 0),
 ];
+$user['profile_picture_url'] = $user['profile_picture']
+    ? 'php/profile_image.php?user_id=' . (int)$user['id']
+    : null;
+unset($user['profile_picture']);
 
 $result = ['user' => $user];
 

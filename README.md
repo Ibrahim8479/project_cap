@@ -25,6 +25,12 @@ Movement estimates and feedback are for monitoring and discussion with a physiot
 - `python/` - Current model training and integration tests.
 - `schema.sql` - MySQL schema and seeded accounts for the local environment.
 
+## Profile photos
+
+Users can update or remove their profile photo from Settings. The application accepts JPG, PNG, and WebP files up to 5 MB. Photos are stored under `uploads/profile/`, which Apache is configured to deny direct access to; `php/profile_image.php` serves images only to the account owner and, for patient photos, their linked physiotherapist. The PHP account must have write access to `uploads/profile/`.
+
+The `profile_picture` database column is included in `schema.sql` and is added automatically for existing databases when `php/me.php` is requested. Existing accounts without a photo continue to display initials.
+
 ## Run locally
 
 1. Install XAMPP or another PHP + MySQL environment.

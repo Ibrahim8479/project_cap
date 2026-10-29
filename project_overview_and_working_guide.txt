@@ -1,0 +1,204 @@
+AI TELEREHABILITATION SYSTEM
+PROJECT OVERVIEW AND WORKING GUIDE
+
+1. PROJECT AT A GLANCE
+
+This repository contains a web application for lower-body rehabilitation monitoring. It provides separate experiences for patients and physiotherapists:
+
+- Patients can view their overview and exercise library, use a camera-assisted exercise session, review activity/progress, message their linked physiotherapist, and manage profile preferences.
+- Physiotherapists can see a dashboard and linked patient list, review patient activity/details, and communicate with linked patients.
+
+The application supports monitoring and discussion with a physiotherapist. It is not a diagnostic tool and does not replace professional medical care.
+
+Current exercise scope:
+- Squats (slug: squat)
+- Lunges (slug: lunge)
+- Knee Extensions (slug: knee-ext)
+
+Do not treat exercises from earlier proposals, such as Sit-to-Stand or Leg Raises, as implemented features.
+
+2. CURRENT TECHNOLOGY AND ARCHITECTURE
+
+User interface:
+- HTML pages in the repository root.
+- Shared and page-specific CSS in css/.
+- Browser JavaScript in js/.
+
+Server and data:
+- PHP API endpoints in php/.
+- MySQL database configured as rehabiai_db in the local setup.
+- Authentication uses PHP sessions and password hashes.
+- Session data, summaries, progress snapshots, profile data, clinician-patient links, and messages are stored in MySQL.
+
+Pose and exercise processing:
+1. A patient opens the live-session page and grants browser camera permission.
+2. MediaPipe Pose runs in the browser and detects pose landmarks from the camera stream.
+3. JavaScript derives movement metrics such as knee/hip angles, torso lean, stance width, repetition states, and movement cues.
+4. A six-feature vector (left/right knee angle, left/right hip angle, torso lean, stance width) can be sent to the PHP inference endpoint.
+5. php/infer_model.php loads the JSON-exported model/scaler and calculates a per-frame exercise prediction using a feed-forward MLP (multilayer perceptron).
+6. The session interface presents the available real-time counts, estimates, and movement feedback.
+7. Authenticated PHP APIs save session records and sampled frame measurements to MySQL. Patient and physiotherapist pages use authorized stored records for summaries and follow-up.
+
+Important accuracy note:
+- The current implementation is a per-frame MLP classifier, not an LSTM sequence model.
+- The architecture.svg file illustrates the current flow.
+- Do not describe the classifier or movement estimates as clinically validated or diagnostic.
+- The Python training helper may use synthetic rows when its configured CSV data is missing. Do not assume production training data has been supplied or validated.
+- No extra exercise, appointment, video-call, wearable, notification, or treatment-plan functionality should be promised unless implemented separately.
+
+3. FILE AND FOLDER MAP
+
+Root HTML pages:
+- index.html - public landing page.
+- login.html, register.html, forgot.html - authentication and password-help screens.
+- dashboard.html - patient dashboard.
+- exercises.html - patient exercise library.
+- session.html - camera-assisted patient exercise session.
+- progress.html - patient activity/progress.
+- messages.html - patient/clinician messaging.
+- settings.html - profile and preference settings.
+- clinician.html - physiotherapist dashboard.
+- clinician-patients.html - physiotherapist patient list.
+- clinician-patient.html - individual patient details.
+
+Styling:
+- css/main.css - shared base styles and original design tokens.
+- css/app-polish.css - shared visual refinement and responsive polish; it overrides/refines some shared tokens.
+- css/auth.css - authentication pages.
+- css/dashboard.css - shared application-shell/dashboard layouts.
+- css/landing.css - landing page.
+- css/session.css - live exercise session.
+- css/clinician.css - physiotherapist screens.
+
+Browser behavior:
+- js/main.js - shared page behavior and application shell.
+- js/auth.js - sign-in/registration behavior.
+- js/dashboard.js - patient dashboard, exercise/history/progress data.
+- js/session.js - camera, pose processing, repetitions, cues, and session lifecycle.
+- js/clinician.js - physiotherapist views.
+- js/messages.js - conversation behavior.
+
+Backend:
+- php/config.php - database connection, PHP session, JSON response, and auth helpers.
+- php/login.php, register.php, logout.php, me.php - authentication and current-user/profile endpoints.
+- php/session_api.php - session lifecycle, sampled frames, progress retrieval, and messages.
+- php/clinician_api.php - clinician dashboard, patient list/details, and clinician-related operations.
+- php/exercises_api.php - exercise data.
+- php/infer_model.php - JSON MLP classifier inference.
+- php/ai_api.php - rules-based feedback and training-sample endpoint.
+- php/seed.php - local seed helper.
+- php/healthz.php - health check.
+
+Database/model/testing:
+- schema.sql - database schema and local seed data; inspect before importing into an existing database.
+- python/train_model.py - train/export the pose classifier.
+- python/infer_model.py - Python inference helper.
+- python/model/pose_classifier.json and pose_scaler.json - inference model artifacts.
+- python/exercise_landmarks.csv - feature data file, when provided.
+- python/integration_test.py, test_infer_py.py, e2e_test.py - model/integration and end-to-end test helpers.
+- python/requirements.txt - Python dependencies.
+- architecture.svg - system flow diagram.
+- README.md - concise local setup and test notes.
+- PROJECT_STATUS.Rmd - fuller status, architecture, implemented scope, and verification notes.
+
+4. MAIN USER JOURNEYS
+
+Patient:
+1. Visit the landing page and create an account or sign in.
+2. Optionally connect to a physiotherapist using a clinician code during registration.
+3. Review the dashboard and the three configured exercises.
+4. Select an exercise and open a live session.
+5. Enable the camera, frame the lower body, and start tracking.
+6. Pause/resume or end the session.
+7. Review session activity and progress, and message the linked physiotherapist if needed.
+8. Update profile details or the available real-time feedback preference in settings.
+
+Physiotherapist:
+1. Sign in and review the dashboard/link code.
+2. Search or filter their linked patient list.
+3. Open an individual patient to review saved activity and progress.
+4. Message a linked patient.
+
+5. DATA MODEL OVERVIEW
+
+The primary tables in schema.sql are:
+- users - patient/clinician profile, role, credential hash, clinician code, and preferences.
+- clinician_patients - patient-to-physiotherapist relationships.
+- exercises - supported exercise names, slugs, descriptions, and targets.
+- sessions - patient, exercise, start/end timestamps, reps, sets, score averages, and status.
+- session_frames - sampled time-series movement metrics and feedback linked to a session.
+- messages - sender, receiver, message body, read state, and timestamp.
+- progress_snapshots - daily patient activity summary.
+- ai_training_samples - stored session-level training/feedback sample metadata.
+
+The schema seeds local development users and exercises. Never reuse local test credentials in a deployed environment or publish credentials from local status documents. Do not put real patient information in mockups, sample data, screenshots, or commits.
+
+6. LOCAL DEVELOPMENT SETUP
+
+Requirements:
+- XAMPP or another PHP + MySQL environment.
+- Node.js/npm for the configured JavaScript lint command.
+- Python and packages from python/requirements.txt for model training/inference tests, if working on the Python component.
+
+Basic setup:
+1. Put the repository under the local web server document root, such as C:\xampp\htdocs\project_cap.
+2. Start Apache and MySQL.
+3. Import schema.sql into MySQL. It creates rehabiai_db; review its seed statements before using a non-disposable database.
+4. Confirm php/config.php connection settings match the local MySQL setup. Do not commit credentials.
+5. Open http://localhost/project_cap/ in a browser. Do not open the HTML files via file:// because PHP APIs require a web server.
+6. For a live session, use a supported browser and grant camera permission.
+
+README.md describes local seeded accounts. Use them only in a local development database; never include their passwords in Figma, sample documents, screenshots, or public deployment.
+
+7. HOW TO MAKE A CHANGE
+
+1. Identify the affected user journey and page(s). Search for the existing behavior before adding another implementation.
+2. Read the corresponding HTML, CSS, JavaScript, and PHP endpoint(s); check schema.sql if stored data changes.
+3. Keep changes consistent with the current responsive layouts, visual tokens, naming, and error handling.
+4. For design work, preserve the current route structure and real capabilities. Treat unimplemented features as future concepts, not live UI.
+5. For backend changes, preserve authentication and role/ownership checks; use parameterized database queries and explicit error responses.
+6. For session work, preserve the camera lifecycle, pause/end behavior, and distinction between movement estimates and clinical advice.
+7. If a data contract or schema must change, update all affected callers and any directly related documentation/tests.
+8. Run the smallest relevant checks (see below), then inspect the diff for unrelated edits.
+
+8. CHECKS AND TESTING
+
+Configured JavaScript lint:
+- npm run lint
+
+PHP syntax check example in PowerShell:
+- C:\xampp\php\php.exe -l php\session_api.php
+- Repeat for each PHP file changed.
+
+Python integration example, when the environment is set up:
+- .venv\Scripts\python.exe python\integration_test.py
+
+Also manually verify the changed flow in a browser served through Apache/PHP when it affects UI, authentication, camera, or APIs. Check desktop and narrow/mobile layouts, and inspect empty/error states as well as the success path.
+
+9. DESIGN HANDOFF AND FIGMA GUIDANCE
+
+Use figma_design_prompt.txt as the design-generation prompt. It lists page-by-page requirements, the current architecture and feature limits, responsive states, and accessibility expectations.
+
+When transferring a Figma design into this repository:
+- Keep the current HTML routes and JavaScript behavior unless implementation work explicitly changes them.
+- Reuse CSS variables and existing shared components before introducing new tokens.
+- Keep the patient and clinician application shells consistent while retaining role-specific navigation.
+- Provide designs for permission, loading, empty, validation, error, paused, and completed states for interactive workflows.
+- Do not invent real user data, medical recommendations, or functionality that the backend does not provide.
+- Review the design on desktop, tablet, and mobile widths before implementation.
+
+10. KNOWN LIMITS / IMPORTANT PRODUCT LANGUAGE
+
+- The application scope is lower-body exercise monitoring with three configured exercises.
+- A score, angle, prediction, or cue is an estimate derived from pose landmarks and current rules/model; it is not a diagnosis.
+- Do not claim clinical accuracy, efficacy, compliance certification, or medical-device status without separate evidence and approval.
+- Do not claim that reminders or dark mode are active; the settings page marks these as coming soon/disabled.
+- Do not claim that a clinician assigns or prescribes plans unless that workflow is actually implemented.
+- Avoid presenting incomplete, missing, or failed data retrieval as a successful result.
+- Use fictional data for design prototypes and demonstrations.
+
+11. QUICK PROJECT SUMMARY
+
+Patient browser UI + webcam/MediaPipe Pose + JavaScript movement metrics and repetition logic + PHP session/inference APIs + JSON MLP model + MySQL persistence + patient and physiotherapist dashboards.
+
+The product's aim is to make home exercise activity easier to monitor and discuss with a physiotherapist, while keeping users informed that automated movement feedback is supportive and not medical diagnosis.

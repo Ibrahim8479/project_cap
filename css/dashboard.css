@@ -293,5 +293,5 @@
   .stats-row { grid-template-columns: 1fr; }
   .content-area { gap: 1rem; }
   .plan-cta .btn { width: 100%; justify-content: center; }
-  .session-table { min-width: 540px; }
+  table.session-table { min-width: 540px; }
 }

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Settings - AI Telerehabilitation</title>
   <link rel="stylesheet" href="css/main.css?v=20261023-2" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261023-2" />
-  <link rel="stylesheet" href="css/app-polish.css?v=11" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261028-1" />
+  <link rel="stylesheet" href="css/app-polish.css?v=16" />
 </head>
 <body class="app-page">
   <aside class="sidebar" id="sidebar">
@@ -35,7 +35,7 @@
 
   <main class="main-content">
     <header class="topbar">
-      <button class="hamburger" id="sidebarToggle">☰</button>
+      <button class="hamburger" id="sidebarToggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">☰</button>
       <div class="topbar-left">
         <h1 class="page-title">Settings</h1>
         <span class="text-muted" style="font-size:.875rem;">Manage your profile and session preferences</span>
@@ -49,6 +49,20 @@
     <div class="content-area">
       <div class="card session-history-card">
         <div class="card-header"><span>Account Settings</span></div>
+        <div class="profile-photo-settings">
+          <div class="user-avatar profile-photo-preview" id="settingsProfileAvatar" aria-label="Profile photo preview"></div>
+          <div class="profile-photo-controls">
+            <strong>Profile photo</strong>
+            <p class="text-muted">Choose a JPG, PNG, or WebP image up to 5 MB.</p>
+            <div class="flex gap-1">
+              <button type="button" class="btn btn-outline btn-sm" id="chooseProfilePhoto">Choose photo</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="removeProfilePhoto" hidden>Remove photo</button>
+            </div>
+            <input id="profilePictureInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+            <input id="profilePictureRemove" type="hidden" value="0" />
+            <p id="profilePhotoStatus" class="text-muted profile-photo-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
         <div class="form-group">
           <label class="form-label">Full Name</label>
           <input class="form-control" type="text" id="accountFullName" name="full_name" />
@@ -66,20 +80,28 @@
 
       <div class="session-table card" style="padding:1.5rem;">
         <div class="card-header"><span>Preferences</span></div>
-        <div class="form-group">
-          <label class="checkbox-label"><input type="checkbox" id="prefReceiveReminders" disabled /> Session reminders (coming soon)</label>
+        <div id="patientReminderSettings">
+          <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" id="prefReceiveReminders" /> Daily in-app session reminder</label>
+            <div class="form-group reminder-time-setting">
+              <label class="form-label" for="prefReminderTime">Reminder time (your local time)</label>
+              <input class="form-control" type="time" id="prefReminderTime" value="18:00" />
+              <small class="text-muted">Shown once per day when you open the app after this time, if you have not completed a session today.</small>
+            </div>
+          </div>
         </div>
         <div class="form-group">
           <label class="checkbox-label"><input type="checkbox" id="prefRealtimeFeedback" /> Enable real-time feedback prompts</label>
         </div>
         <div class="form-group">
-          <label class="checkbox-label"><input type="checkbox" id="prefDarkMode" disabled /> Dark mode (coming soon)</label>
+          <label class="checkbox-label"><input type="checkbox" id="prefDarkMode" /> Dark mode</label>
         </div>
+        <p id="preferencesStatus" class="text-muted profile-photo-status" role="status" aria-live="polite"></p>
       </div>
     </div>
   </main>
 
-  <script src="js/main.js?v=5"></script>
-  <script src="js/dashboard.js?v=10"></script>
+  <script src="js/main.js?v=7"></script>
+  <script src="js/dashboard.js?v=11"></script>
 </body>
 </html>
